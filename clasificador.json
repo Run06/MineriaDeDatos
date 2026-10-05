@@ -1,0 +1,8 @@
+{
+  "preprocessing": {
+    "text_process": "tf-idf"
+  },
+  "KMeans": {
+
+  }
+}
