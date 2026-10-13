@@ -3,6 +3,11 @@
     "text_process": "tf-idf"
   },
   "KMeans": {
-
+    "n_clusters": 3,
+    "random_state": 42,
+    "distancia": "Euclidean",
+    "modo": "plusplus",
+    "max_iter": 300,
+    "tol": 0.0001
   }
 }

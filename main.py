@@ -7,6 +7,7 @@ import pandas as pd
 from colorama import Fore
 
 from preproceso import preproceso
+from k_means import kmeans
 
 
 def parse_args():
@@ -30,11 +31,30 @@ if __name__ == "__main__":
     #cargar csv
     #raw_data = pd.read_csv(parse_args().file)
     raw_data = pd.read_csv('500_Reddit_users_posts_labels.csv')
+
     #división train test, 0.7
     p_train = 0.7
     raw_data['is_train'] = np.random.uniform(0, 1, len(raw_data)) <= p_train
     train, test = raw_data[raw_data['is_train'] == True], raw_data[raw_data['is_train'] == False]
+
     print(Fore.MAGENTA + f"Preprocesando datos del train..." + Fore.RESET)
     #train_prep = preproceso(train[parse_args().column], args)
     train_prep = preproceso(train['Post'], args)
     print(Fore.GREEN + f"Datos preprocesados!" + Fore.RESET)
+
+    #Preparación de la matriz para K-means
+    if hasattr(train_prep, 'toarray'):
+        X_train = train_prep.toarray()
+    elif isinstance(train_prep, pd.DataFrame):
+        X_train = train_prep.values
+    else:
+        X_train = np.array(train_prep)
+
+    print(Fore.MAGENTA + f"Matriz preparada con forma: {X_train.shape}" + Fore.RESET)
+
+    #Ejecución K-means
+    print(Fore.MAGENTA + f"Ejecutando K-Means..." + Fore.RESET)
+    clusters, centroides = kmeans(X_train, **args.KMeans)
+
+    print(Fore.GREEN + f"¡K-Means finalizado con éxito!" + Fore.RESET)
+    print(f"Centroides finales calculados: {centroides.shape[0]}")
