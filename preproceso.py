@@ -16,6 +16,7 @@ MAX_CHUNKS = 50       # tope de trozos por usuario (None = sin tope)
 # Preproceso de los datos
 def preproceso(text_cols, args):
     text_process = args.preprocessing.get("text_process", "none")
+    nltk.download('punkt_tab')
 
     if text_process == "tf-idf":
         textos = text_cols.apply(clean_text)

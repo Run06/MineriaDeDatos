@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 
 #Validación de los parametros
 ####################################3
@@ -61,6 +62,23 @@ def kmeans(X,n_clusters,random_state=42,distancia='Euclidean',modo='kmeans',max_
         desplazamiento = np.linalg.norm(centroides - centroides_anteriores)
         if desplazamiento <= tol:
             break
-    return clusters, centroides
+
+    #---
+    #Almacenar pkl
+    nombre_archivo = f"{modo}-{distancia}-{n_clusters}.pkl"
+
+    datos_modelo = {
+        'labels_': clusters,
+        'cluster_centers_': centroides,
+        'n_clusters': n_clusters,
+        'modo': modo,
+        'distancia': distancia
+    }
+
+    with open(nombre_archivo, 'wb') as f:
+        pickle.dump(datos_modelo, f)
+
+
+    return clusters, centroides, nombre_archivo
 
 

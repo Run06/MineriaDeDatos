@@ -1,3 +1,5 @@
+import os
+import pandas as pd
 from colorama import Fore
 import pickle
 import numpy as np
@@ -6,8 +8,8 @@ from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.metrics.cluster import contingency_matrix
 
 
-def evaluar(train):
-    with open('kmeans_model.pkl', 'rb') as f:
+def evaluar(train, pkl):
+    with open(pkl, 'rb') as f:
         data = pickle.load(f)
 
     kmeans = data['model']
@@ -36,13 +38,41 @@ def evaluar(train):
     print("Tabla de Comparación por Parejas (Matriz de Contingencia):")
     print(conf_matrix)
     #Jaccard
-    print(f"Jaccard: {jaccard_clustering(conf_matrix):.4f}")
+    jaccard = jaccard_clustering(conf_matrix)
+    print(f"Jaccard: {jaccard:.4f}")
     #Rand Index
     rand = rand_score(y_true, labels_pred)
     print(f"Rand Index: {rand:.4f}")
     #Fowlkes-Mallows
     fmi = fowlkes_mallows_score(y_true, labels_pred)
     print(f"Fowlkes-Mallows: {fmi:.4f}")
+
+    #---
+    #Guardar métricas csv
+    registro = {
+        "ArchivoPKL": os.path.basename(pkl),
+        "NClusters": kmeans.n_clusters,
+
+        # Métricas Internas
+        "Cohesion_Inercia": cohesion,
+        "Separabilidad_Min_Dist": separabilidad,
+        "Silhouette_Score": sil_score,
+
+        # Métricas Externas
+        "Jaccard_Index": jaccard,
+        "Rand_Index": rand,
+        "Fowlkes_Mallows_Index": fmi
+    }
+
+    if os.path.exists('metricas_modelos.csv'):
+        df = pd.read_csv('metricas_modelos.csv')
+        df_final = pd.concat([df, pd.DataFrame([registro])], ignore_index=True)
+    else:
+        df_final = pd.DataFrame([registro])
+
+    df_final.to_csv('metricas_modelos.csv', index=False, encoding="utf-8")
+
+    print(Fore.GREEN + f"Métricas del modelo guardadas en 'metricas_modelos.csv'" + Fore.RESET)
 
 
 def jaccard_clustering(conf_matrix):

@@ -1,7 +1,6 @@
 import argparse
 import os
 import json
-import nltk
 import numpy as np
 import pandas as pd
 from colorama import Fore
@@ -54,7 +53,7 @@ if __name__ == "__main__":
 
     #Ejecución K-means
     print(Fore.MAGENTA + f"Ejecutando K-Means..." + Fore.RESET)
-    clusters, centroides = kmeans(X_train, **args.KMeans)
+    clusters, centroides, nombre_archivo = kmeans(X_train, **args.KMeans)
 
-    print(Fore.GREEN + f"¡K-Means finalizado con éxito!" + Fore.RESET)
+    print(Fore.GREEN + f"Modelo guardado en '{nombre_archivo}'" + Fore.RESET)
     print(f"Centroides finales calculados: {centroides.shape[0]}")
