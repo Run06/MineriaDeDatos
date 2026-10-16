@@ -14,7 +14,7 @@ def predecir_clusters(pkl, X_train, textos_train, text_process):
 
     for i in range(n_clusters):
         print(Fore.CYAN + f"Clúster {i}" + Fore.RESET)
-        if text_process in ["tf-idf", "embeddings"]:
+        if text_process in ["bow", "tf-idf", "embeddings"]:
             distancias = np.linalg.norm(X_train - centroides[i], axis=1)
             indices_cercanos = np.argsort(distancias)[:5]
 

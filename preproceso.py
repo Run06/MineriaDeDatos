@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from nltk import SnowballStemmer, word_tokenize
 from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
 MODELO_EMBEDDINGS = "paraphrase-multilingual-MiniLM-L12-v2"
 CHUNK_PALABRAS = 80   # ~100-110 tokens, por debajo del límite de 128
@@ -25,6 +25,11 @@ def preproceso(text_cols, args):
                               min_df=2,
                               max_df=0.9,
                               sublinear_tf=True)
+        return vec.fit_transform(textos)
+
+    elif text_process == "bow":
+        textos = text_cols.apply(clean_text)
+        vec = CountVectorizer(max_features=10000, ngram_range=(1, 2))
         return vec.fit_transform(textos)
 
     elif text_process == "embeddings":
@@ -118,7 +123,7 @@ def trocear(texto, chunk_palabras, max_chunks):
         chunks = [chunks[i] for i in idx]
     return chunks
 
-#Limpiar texto (solo para TF-IDF)
+#Limpiar texto (solo para Aproximaciones dispersas)
 def clean_text(text):
     nltk.download(['stopwords', 'punkt'], quiet=True)
     #Función de limpieza con manejo de negaciones
