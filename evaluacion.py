@@ -8,50 +8,49 @@ from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.metrics.cluster import contingency_matrix
 
 
-def evaluar(train, pkl):
+def evaluar(X_Train, y_train, pkl):
+
     with open(pkl, 'rb') as f:
         data = pickle.load(f)
 
-    kmeans = data['model']
-    labels_pred = kmeans.labels_
-    X = train['Post']
-    y_true = train['Label']
+    labels_pred = data['labels_']
+    centroides = data['cluster_centers_']
+    n_clusters = data['n_clusters']
 
     #---
     print(Fore.YELLOW + f"Empleando métodos de evaluación Internos..." + Fore.RESET)
     #Cohesión interna
-    cohesion = kmeans.inertia_
+    cohesion = sum(np.min(np.linalg.norm(X_Train - centroides[i], axis=1)**2) for i in range(n_clusters))
     print(f"Cohesión Interna (Inercia): {cohesion:.4f} (Menor es más coherente cada cluster)")
     #Separabilidad externa
-    centroides = kmeans.cluster_centers_
     dist_matrix = euclidean_distances(centroides)
-    np.fill_diagonal(dist_matrix, np.inf)  # Ignorar la distancia de un centroide consigo mismo
+    np.fill_diagonal(dist_matrix, np.inf)  #Ignorar la distancia de un centroide consigo mismo
     separabilidad = np.min(dist_matrix)
     print(f"Separabilidad Externa (Mín. Dist. Centroides): {separabilidad:.4f} (Mayor es más separado)")
     #Silhouette
-    sil_score = silhouette_score(X, labels_pred)
+    sil_score = silhouette_score(X_Train, labels_pred)
     print(f"Silhouette Score: {sil_score:.4f} (Rango [-1, 1], ideal cercano a 1)")
 
     #---
     print(Fore.YELLOW + f"Empleando métodos de evaluación Externos..." + Fore.RESET)
-    conf_matrix = contingency_matrix(y_true, labels_pred)
+    conf_matrix = contingency_matrix(y_train, labels_pred)
     print("Tabla de Comparación por Parejas (Matriz de Contingencia):")
     print(conf_matrix)
     #Jaccard
     jaccard = jaccard_clustering(conf_matrix)
     print(f"Jaccard: {jaccard:.4f}")
     #Rand Index
-    rand = rand_score(y_true, labels_pred)
+    rand = rand_score(y_train, labels_pred)
     print(f"Rand Index: {rand:.4f}")
     #Fowlkes-Mallows
-    fmi = fowlkes_mallows_score(y_true, labels_pred)
+    fmi = fowlkes_mallows_score(y_train, labels_pred)
     print(f"Fowlkes-Mallows: {fmi:.4f}")
 
     #---
     #Guardar métricas csv
     registro = {
         "ArchivoPKL": os.path.basename(pkl),
-        "NClusters": kmeans.n_clusters,
+        "NClusters": n_clusters,
 
         # Métricas Internas
         "Cohesion_Inercia": cohesion,
