@@ -4,6 +4,7 @@ import json
 import numpy as np
 import pandas as pd
 from colorama import Fore
+import psutil
 
 from preproceso import preproceso
 from k_means import kmeans
@@ -30,8 +31,22 @@ def parse_args():
             setattr(args, k, v)
     return args
 
+def imprimir_memoria(fase):
+    #Memoria del script
+    proceso = psutil.Process(os.getpid())
+    mem_proceso_mb = proceso.memory_info().rss / (1024 * 1024)
+
+    #Memoria completa del ordenador
+    mem_sistema = psutil.virtual_memory()
+    mem_sistema_gb = mem_sistema.used / (1024 * 1024 * 1024)
+
+    print(Fore.CYAN + f"[{fase}]" + Fore.RESET)
+    print(f"  ├─ RAM del script Python: {mem_proceso_mb:.2f} MB")
+    print(f"  └─ RAM total del sistema: {mem_sistema_gb:.2f} GB ({mem_sistema.percent}%)\n")
+
 if __name__ == "__main__":
     args = parse_args()
+    imprimir_memoria("Inicio del programa")
     #Cargar csv
     raw_data = pd.read_csv(args.file)
 
@@ -41,10 +56,12 @@ if __name__ == "__main__":
     raw_data['is_train'] = np.random.uniform(0, 1, len(raw_data)) <= p_train
     train, test = raw_data[raw_data['is_train'] == True], raw_data[raw_data['is_train'] == False]
 
+    imprimir_memoria("Carga CSV")
+
     print(Fore.MAGENTA + f"Preprocesando datos del train..." + Fore.RESET)
     train_prep = preproceso(train[args.target], args)
     print(Fore.GREEN + f"Datos preprocesados!" + Fore.RESET)
-
+    imprimir_memoria("Preprocesado")
     print("-"*60)
 
     #Preparación de la matriz para K-means
@@ -54,6 +71,7 @@ if __name__ == "__main__":
         X_train = train_prep.values
     else:
         X_train = np.array(train_prep)
+    imprimir_memoria("Conversión a matriz densa")
 
     print(Fore.MAGENTA + f"Matriz preparada con forma: {X_train.shape}" + Fore.RESET)
 
@@ -66,13 +84,13 @@ if __name__ == "__main__":
     os.rename(nombre_archivo, nombre_archivo_final)
     print(Fore.GREEN + f"Modelo guardado en '{nombre_archivo_final}'" + Fore.RESET)
     print(f"Centroides finales calculados: {centroides.shape[0]}")
-
+    imprimir_memoria("K-Means")
     print("-"*60)
 
     #Evaluación
     y_train = train[args.label].to_numpy()
     evaluar(X_train, y_train, nombre_archivo_final)
-
+    imprimir_memoria("Evaluación")
     print("-"*60)
 
     #Predicción Ollama
@@ -80,3 +98,4 @@ if __name__ == "__main__":
     #Descargar Ollama: https://ollama.com/download, después la versión 3.1 (en terminal del PC: ollama pull llama3.1)
     #Dejar abierto Ollama en segundo plano
     predecir_clusters(nombre_archivo_final, X_train, train[args.target], args.preprocessing.get("text_process"))
+    imprimir_memoria("Ollama")
