@@ -5,7 +5,7 @@
   "KMeans": {
     "n_clusters": 3,
     "random_state": 42,
-    "distancia": "Euclidean",
+    "distancia": "Cosine",
     "modo": "plusplus",
     "max_iter": 300,
     "tol": 0.0001

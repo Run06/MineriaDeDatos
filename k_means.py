@@ -51,6 +51,20 @@ def kmeans(X,n_clusters,random_state=42,distancia='Euclidean',modo='kmeans',max_
         elif distancia == 'Manhattan':
             for i in range(n_clusters):
                 distancias[:, i] = np.sum(np.abs(X - centroides[i]), axis=1)
+        elif distancia == 'Cosine':
+            # Calculamos las normas de cada vector
+            # keepdims=True mantiene la forma (N, 1)
+            norm_X = np.linalg.norm(X,axis=1,keepdims=True)
+            norm_C = np.linalg.norm(centroides,axis=1)
+            #Multiplicamos las normas, 1e-10 es para evitar la division por 0 en caso de post vacio
+            denominador = np.maximum(norm_X * norm_C, 1e-10)
+            #Producto escalar de todos contra todos a la vez
+            producto_escalar = X @ centroides.T
+            similitud = producto_escalar / denominador
+            # K-Means asigna el punto a la distancia MÍNIMA.
+            # La similitud máxima es 1. Por lo tanto, Distancia = 1 - Similitud.
+            # (Distancia 0 = idénticos, Distancia 2 = opuestos)
+            distancias = 1.0 - similitud
         else:
             raise ValueError('Distancia no válida')
         clusters = np.argmin(distancias, axis=1)
