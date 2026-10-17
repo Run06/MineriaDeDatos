@@ -16,3 +16,5 @@ ANTES DE EJECUTAR!!!
 Descargar Ollama: https://ollama.com/download, después la versión 3.1 (en terminal del PC: ollama pull llama3.1)
 
 Dejar abierto Ollama en segundo plano
+
+python .\main.py -f 500_Reddit_users_posts_labels.csv -t Post -o True
