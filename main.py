@@ -1,15 +1,16 @@
 import argparse
 import os
 import json
+import sys
 import numpy as np
 import pandas as pd
 from colorama import Fore
 import psutil
 
-from preproceso import preproceso
-from k_means import kmeans
-from evaluacion import evaluar
-from ollama_pred import predecir_clusters
+from py.preproceso import preproceso
+from py.k_means import kmeans
+from py.evaluacion import evaluar
+from py.ollama_pred import predecir_clusters
 
 #CLASIFICADOR NO SUPERVISADO: K-Means
 #Marcos Cobo Gutiérrez, Ibai Buján Urien, Keneth Sebastián Campos
@@ -48,7 +49,11 @@ if __name__ == "__main__":
     args = parse_args()
     imprimir_memoria("Inicio del programa")
     #Cargar csv
-    raw_data = pd.read_csv(args.file)
+    try:
+        raw_data = pd.read_csv(args.file)
+    except FileNotFoundError:
+        print(f"Error: El archivo '{args.file}' no existe o la ruta es incorrecta.")
+        sys.exit(-1)
 
     #División train test, 0.7
     p_train = 0.7
@@ -79,10 +84,10 @@ if __name__ == "__main__":
     print(Fore.MAGENTA + f"Ejecutando K-Means..." + Fore.RESET)
     clusters, centroides, nombre_archivo = kmeans(X_train, **args.KMeans)
     nombre_archivo_final = args.preprocessing.get("text_process")+'-'+nombre_archivo
-    if os.path.exists(nombre_archivo_final):
-        os.remove(nombre_archivo_final)
-    os.rename(nombre_archivo, nombre_archivo_final)
-    print(Fore.GREEN + f"Modelo guardado en '{nombre_archivo_final}'" + Fore.RESET)
+    if os.path.exists('output/'+nombre_archivo_final):
+        os.remove('output/'+nombre_archivo_final)
+    os.rename('output/'+nombre_archivo, 'output/'+nombre_archivo_final)
+    print(Fore.GREEN + f"Modelo guardado en output/'{nombre_archivo_final}'" + Fore.RESET)
     print(f"Centroides finales calculados: {centroides.shape[0]}")
     imprimir_memoria("K-Means")
     print("-"*60)

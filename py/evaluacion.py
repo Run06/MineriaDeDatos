@@ -9,8 +9,8 @@ from sklearn.metrics.cluster import contingency_matrix
 
 
 def evaluar(X_Train, y_train, pkl):
-
-    with open(pkl, 'rb') as f:
+    file_path = os.path.join('output/', pkl)
+    with open(file_path, 'rb') as f:
         data = pickle.load(f)
 
     labels_pred = data['labels_']
@@ -63,15 +63,15 @@ def evaluar(X_Train, y_train, pkl):
         "Fowlkes_Mallows_Index": fmi
     }
 
-    if os.path.exists('metricas_modelos.csv'):
-        df = pd.read_csv('metricas_modelos.csv')
+    if os.path.exists('output/metricas_modelos.csv'):
+        df = pd.read_csv('output/metricas_modelos.csv')
         df_final = pd.concat([df, pd.DataFrame([registro])], ignore_index=True)
     else:
         df_final = pd.DataFrame([registro])
 
-    df_final.to_csv('metricas_modelos.csv', index=False, encoding="utf-8")
+    df_final.to_csv('output/metricas_modelos.csv', index=False, encoding="utf-8")
 
-    print(Fore.GREEN + f"Métricas del modelo guardadas en 'metricas_modelos.csv'" + Fore.RESET)
+    print(Fore.GREEN + f"Métricas del modelo guardadas en 'output/metricas_modelos.csv'" + Fore.RESET)
 
 
 def jaccard_clustering(conf_matrix):

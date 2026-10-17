@@ -1,10 +1,12 @@
+import os
 import pickle
 import numpy as np
 from colorama import Fore
 import ollama
 
 def predecir_clusters(pkl, X_train, textos_train, text_process):
-    with open(pkl, 'rb') as f:
+    file_path = os.path.join('output/', pkl)
+    with open(file_path, 'rb') as f:
         data = pickle.load(f)
 
     centroides = data['cluster_centers_']
@@ -32,7 +34,7 @@ def predecir_clusters(pkl, X_train, textos_train, text_process):
         prompt = (
             f"{info_contexto}\n\n"
             f"Basándote exclusivamente en esta información, responde estrictamente con:\n"
-            f"1. Una etiqueta de entre (Supportive, Ideation, Behavior, Attempt) según la probabilidad de cometer suicidio."
+            f"1. Una etiqueta de entre (Supportive, Ideation, Behavior, Attempt) según la probabilidad de cometer suicidio, una única palabra."
             f"2. Una explicación de una sola línea de por qué."
         )
 
@@ -42,7 +44,7 @@ def predecir_clusters(pkl, X_train, textos_train, text_process):
             messages=[
                 {
                     'role': 'system',
-                    'content': 'Eres un analista de datos experto en minería de datos. Sé muy conciso.'
+                    'content': 'Eres un analista experto en minería de datos. Sé muy conciso.'
                 },
                 {
                     'role': 'user',

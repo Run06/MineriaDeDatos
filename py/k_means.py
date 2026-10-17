@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pickle
 
@@ -89,7 +90,9 @@ def kmeans(X,n_clusters,random_state=42,distancia='Euclidean',modo='kmeans',max_
         'distancia': distancia
     }
 
-    with open(nombre_archivo, 'wb') as f:
+    file_path = os.path.join('output/', nombre_archivo)
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, 'wb') as f:
         pickle.dump(datos_modelo, f)
 
 
