@@ -18,7 +18,7 @@ from py.ollama_pred import predecir_clusters
 def parse_args():
     parser = argparse.ArgumentParser(description="Clasificación no supervisada K-Means")
     parser.add_argument("-f", "--file", required=True, help="Archivo CSV de entrada")
-    #parser.add_argument("-c", "--cpu", default=-1, type=int)
+    parser.add_argument("-o", "--ollama", default=False, help="Aplicar predicción de Ollama sobre los clusters")
     parser.add_argument("-t", "--target", required=True, help="Columna de la tabla a clasificar")
     parser.add_argument("-l", "--label", default='Label', help="Columna del Label para métricas externas")
     parser.add_argument("-s", "--sample", type=float, default=1.0, help="Porcentaje de datos a usar (0.0 a 1.0)")
@@ -102,5 +102,6 @@ if __name__ == "__main__":
     #ANTES DE EJECUTAR!!!
     #Descargar Ollama: https://ollama.com/download, después la versión 3.1 (en terminal del PC: ollama pull llama3.1)
     #Dejar abierto Ollama en segundo plano
-    predecir_clusters(nombre_archivo_final, X_train, train[args.target], args.preprocessing.get("text_process"))
-    imprimir_memoria("Ollama")
+    if args.ollama:
+        predecir_clusters(nombre_archivo_final, X_train, train[args.target], args.preprocessing.get("text_process"))
+        imprimir_memoria("Ollama")
