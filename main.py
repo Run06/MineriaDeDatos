@@ -69,16 +69,7 @@ if __name__ == "__main__":
     imprimir_memoria("Preprocesado")
     print("-"*60)
 
-    #Preparación de la matriz para K-means
-    if hasattr(train_prep, 'toarray'):
-        X_train = train_prep.toarray()
-    elif isinstance(train_prep, pd.DataFrame):
-        X_train = train_prep.values
-    else:
-        X_train = np.array(train_prep)
-    imprimir_memoria("Conversión a matriz densa")
-
-    print(Fore.MAGENTA + f"Matriz preparada con forma: {X_train.shape}" + Fore.RESET)
+    X_train = train_prep
 
     #Ejecución K-means
     print(Fore.MAGENTA + f"Ejecutando K-Means..." + Fore.RESET)
