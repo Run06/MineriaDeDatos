@@ -10,7 +10,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from py.preproceso import preproceso
+from py.preproceso import preproceso, preparar_instancias, COL_TEXTO
 from py.k_means import kmeans
 from py.evaluacion import evaluar
 from py.ollama_pred import predecir_clusters
@@ -141,8 +141,15 @@ if __name__ == "__main__":
 
     registrar_memoria("Carga CSV")
 
+    #Unidad de análisis: "usuario" (una fila por usuario) o "mensaje" (una fila por mensaje)
+    #Se divide ANTES por usuario (arriba) para que los mensajes de un mismo usuario no caigan en train y test
+    unidad = args.preprocessing.get("unidad", "usuario")
+    train = preparar_instancias(train, args)
+    test = preparar_instancias(test, args)
+    print(f"Unidad de análisis: {unidad} -> {len(train)} instancias en train, {len(test)} en test")
+
     print(Fore.MAGENTA + f"Preprocesando datos del train..." + Fore.RESET)
-    train_prep = preproceso(train[args.target], args)
+    train_prep = preproceso(train[COL_TEXTO], args)
     print(Fore.GREEN + f"Datos preprocesados!" + Fore.RESET)
     registrar_memoria("Preprocesado")
     print("-"*60)
@@ -152,7 +159,7 @@ if __name__ == "__main__":
     #Ejecución K-means
     print(Fore.MAGENTA + f"Ejecutando K-Means..." + Fore.RESET)
     clusters, centroides, nombre_archivo = kmeans(X_train, **args.KMeans)
-    nombre_archivo_final = args.preprocessing.get("text_process")+'-'+nombre_archivo
+    nombre_archivo_final = args.preprocessing.get("text_process")+'-'+unidad+'-'+nombre_archivo
     if os.path.exists('output/'+nombre_archivo_final):
         os.remove('output/'+nombre_archivo_final)
     os.rename('output/'+nombre_archivo, 'output/'+nombre_archivo_final)
@@ -172,6 +179,6 @@ if __name__ == "__main__":
     #Descargar Ollama: https://ollama.com/download, después la versión 3.1 (en terminal del PC: ollama pull llama3.1)
     #Dejar abierto Ollama en segundo plano
     if args.ollama:
-        predecir_clusters(nombre_archivo_final, X_train, train[args.target], args.preprocessing.get("text_process"))
+        predecir_clusters(nombre_archivo_final, X_train, train[COL_TEXTO], args.preprocessing.get("text_process"))
         registrar_memoria("Ollama")
     graficar_memoria()

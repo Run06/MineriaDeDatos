@@ -11,12 +11,15 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
 MODELO_EMBEDDINGS = "paraphrase-multilingual-MiniLM-L12-v2"
 CHUNK_PALABRAS = 80   # ~100-110 tokens, por debajo del límite de 128
-MAX_CHUNKS = 50       # tope de trozos por usuario (None = sin tope)
+MAX_CHUNKS = 50       # tope de trozos por instancia cuando la instancia es un usuario
+MAX_CHUNKS_MENSAJE = 10   # tope cuando la instancia es un mensaje (None = sin tope)
+COL_TEXTO = "Mensaje"     # nombre de la columna de texto que generan las instancias
+UNIDADES = ("usuario", "mensaje")
 
 # Preproceso de los datos
 def preproceso(text_cols, args):
     text_process = args.preprocessing.get("text_process", "none")
-    nltk.download('punkt_tab')
+    unidad = args.preprocessing.get("unidad", "usuario")
 
     if text_process == "tf-idf":
         textos = text_cols.apply(clean_text)
@@ -37,7 +40,8 @@ def preproceso(text_cols, args):
             text_cols,
             cache_dir=args.preprocessing.get("cache_dir", "cache"),
             chunk_palabras=args.preprocessing.get("chunk_palabras", CHUNK_PALABRAS),
-            max_chunks=args.preprocessing.get("max_chunks", MAX_CHUNKS),
+            max_chunks=args.preprocessing.get(
+                "max_chunks", MAX_CHUNKS_MENSAJE if unidad == "mensaje" else MAX_CHUNKS),
         )
 
     else:
@@ -106,7 +110,37 @@ def explotar_mensajes(df, col_post="Post", col_user="User",
             m = m.strip()
             if len(m.split()) >= min_palabras:
                 filas.append((user, label, m))
-    return pd.DataFrame(filas, columns=[col_user, col_label, "Mensaje"])
+    return pd.DataFrame(filas, columns=[col_user, col_label, COL_TEXTO])
+
+
+def unir_mensajes(crudo):
+    """Convierte "['msg1', 'msg2']" en 'msg1 msg2' (un único texto por usuario)."""
+    return " ".join(m.strip() for m in parsear_mensajes(crudo))
+
+
+def preparar_instancias(df, args):
+    """Convierte el DataFrame (una fila por usuario) en el DataFrame de instancias
+    según args.preprocessing["unidad"]:
+      - "usuario": una fila por usuario, con todos sus mensajes unidos en un texto.
+      - "mensaje": una fila por mensaje; cada mensaje hereda User y Label de su autor.
+    Siempre devuelve columnas [col_user, col_label, COL_TEXTO] y NO modifica df."""
+    cfg = args.preprocessing
+    unidad = cfg.get("unidad", "usuario")
+    col_user = cfg.get("col_user", "User")
+    col_post, col_label = args.target, args.label
+
+    if unidad not in UNIDADES:
+        raise ValueError(f"unidad no soportada: {unidad!r} (usa una de {UNIDADES})")
+    if col_user not in df.columns:           # dataset sin columna de usuario
+        df = df.assign(**{col_user: df.index})
+
+    if unidad == "mensaje":
+        return explotar_mensajes(df, col_post, col_user, col_label,
+                                 cfg.get("min_palabras", 1))
+
+    out = df[[col_user, col_label]].copy()
+    out[COL_TEXTO] = [unir_mensajes(p) for p in df[col_post]]
+    return out.reset_index(drop=True)
 
 
 def trocear(texto, chunk_palabras, max_chunks):
@@ -123,18 +157,26 @@ def trocear(texto, chunk_palabras, max_chunks):
         chunks = [chunks[i] for i in idx]
     return chunks
 
+#Recursos de NLTK: se preparan UNA vez (antes se descargaban y se recreaban en cada llamada,
+#lo que con una fila por mensaje se repetiría miles de veces)
+_STEMMER = SnowballStemmer('english')
+_STOP_WORDS = None
+
+def _stop_words():
+    global _STOP_WORDS
+    if _STOP_WORDS is None:
+        nltk.download(['stopwords', 'punkt', 'punkt_tab'], quiet=True)
+        negaciones = {'no', 'not', 'neither', 'nor', 'none', 'never'}
+        _STOP_WORDS = set(stopwords.words('english')) - negaciones
+    return _STOP_WORDS
+
 #Limpiar texto (solo para Aproximaciones dispersas)
 def clean_text(text):
-    nltk.download(['stopwords', 'punkt'], quiet=True)
-    #Función de limpieza con manejo de negaciones
-    stemmer = SnowballStemmer('english')
-    stop_words = set(stopwords.words('english'))
-    negaciones = {'no', 'not', 'neither', 'nor', 'none', 'never'}
-    stop_words = stop_words - negaciones
+    stop_words = _stop_words()
     #Texto minúsculas
     text = str(text).lower()
     #Limpieza texto
-    clean_text = re.sub(r'[^a-záéíóúñ\s]', '', text)
-    tokens = word_tokenize(clean_text, language='english')
-    cleaned = [stemmer.stem(w) for w in tokens if w not in stop_words]
+    limpio = re.sub(r'[^a-záéíóúñ\s]', '', text)
+    tokens = word_tokenize(limpio, language='english')
+    cleaned = [_STEMMER.stem(w) for w in tokens if w not in stop_words]
     return ' '.join(cleaned)

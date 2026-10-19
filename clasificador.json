@@ -1,6 +1,7 @@
 {
   "preprocessing": {
-    "text_process": "tf-idf"
+    "text_process": "embeddings",
+    "unidad": "mensaje"
   },
   "KMeans": {
     "n_clusters": 3,
