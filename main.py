@@ -6,6 +6,9 @@ import numpy as np
 import pandas as pd
 from colorama import Fore
 import psutil
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 from py.preproceso import preproceso
 from py.k_means import kmeans
@@ -31,9 +34,10 @@ def parse_args():
         for k, v in config.items():
             setattr(args, k, v)
     return args
-
-def imprimir_memoria(fase):
-    #Memoria del script
+#Lista global
+historial_memoria = []
+def registrar_memoria(fase):
+    #Obtener memoria actual
     proceso = psutil.Process(os.getpid())
     mem_proceso_mb = proceso.memory_info().rss / (1024 * 1024)
 
@@ -41,13 +45,87 @@ def imprimir_memoria(fase):
     mem_sistema = psutil.virtual_memory()
     mem_sistema_gb = mem_sistema.used / (1024 * 1024 * 1024)
 
+    historial_memoria.append({
+        'fase': fase,
+        'ram_python_mb': mem_proceso_mb,
+        'ram_sistema_gb': mem_sistema_gb
+    })
+
+    # Calcular los picos históricos iterando sobre la lista
+    pico_python = max(registro['ram_python_mb'] for registro in historial_memoria)
+    pico_sistema = max(registro['ram_sistema_gb'] for registro in historial_memoria)
+
+    # Imprimir por consola
     print(Fore.CYAN + f"[{fase}]" + Fore.RESET)
-    print(f"  ├─ RAM del script Python: {mem_proceso_mb:.2f} MB")
-    print(f"  └─ RAM total del sistema: {mem_sistema_gb:.2f} GB ({mem_sistema.percent}%)\n")
+    print(f"  ├─ RAM Python:  Actual {mem_proceso_mb:.2f} MB | Pico: {pico_python:.2f} MB")
+    print(f"  └─ RAM Sistema: Actual {mem_sistema_gb:.2f} GB | Pico: {pico_sistema:.2f} GB\n")
+def graficar_memoria():
+    if not historial_memoria:
+        return
+
+    fases = [h['fase'] for h in historial_memoria]
+    ram_python = [h['ram_python_mb'] for h in historial_memoria]
+    ram_sistema = [h['ram_sistema_gb'] for h in historial_memoria]
+
+    fig, ax1 = plt.subplots(figsize=(12, 6))
+
+    # --- Eje Y Izquierdo: RAM Python (MB) ---
+    color1 = 'tab:blue'
+    ax1.set_xlabel('Fases del Proceso', fontweight='bold')
+    ax1.set_ylabel('RAM Script Python (MB)', color=color1, fontweight='bold')
+    ax1.plot(fases, ram_python, marker='o', color=color1, linewidth=2, label='Python (MB)')
+    ax1.tick_params(axis='y', labelcolor=color1)
+    ax1.set_xticklabels(fases, rotation=45, ha="right")
+
+    max_python = max(ram_python)
+    limite_sup_python = max_python * 1.1
+    ax1.set_ylim(0, limite_sup_python)
+    ax1.set_xticks(range(len(fases)))
+    ax1.set_yticks(np.arange(0, limite_sup_python + 50, 50))
+
+    # Añadir los valores numéricos debajo de cada punto de Python
+    for i, valor in enumerate(ram_python):
+        ax1.annotate(f"{valor:.0f} MB",
+                     (fases[i], valor),
+                     textcoords="offset points",
+                     xytext=(0, -15),  # Desplazamiento hacia abajo
+                     ha='center', va='top',
+                     fontsize=9, color=color1, fontweight='bold')
+
+    # --- Eje Y Derecho: RAM Total Sistema (GB) ---
+    ax2 = ax1.twinx()
+    color2 = 'tab:red'
+    ax2.set_ylabel('RAM Total Sistema (GB)', color=color2, fontweight='bold')
+    ax2.plot(fases, ram_sistema, marker='s', color=color2, linewidth=2, linestyle='--', label='Sistema (GB)')
+    ax2.tick_params(axis='y', labelcolor=color2)
+
+    max_sistema = max(ram_sistema)
+    limite_sup_sistema = max_sistema * 1.1
+    ax2.set_ylim(0, limite_sup_sistema)
+    ax2.set_yticks(np.arange(0, limite_sup_sistema + 1.0, 1.0))
+
+    # Añadir los valores numéricos debajo de cada punto del Sistema
+    for i, valor in enumerate(ram_sistema):
+        ax2.annotate(f"{valor:.1f} GB",
+                     (fases[i], valor),
+                     textcoords="offset points",
+                     xytext=(0, 10),  # Desplazamiento hacia abajo
+                     ha='center', va='top',
+                     fontsize=9, color=color2, fontweight='bold')
+
+    # Estética y guardado
+    fig.tight_layout()
+    plt.title('Perfil de Consumo de Memoria durante la Ejecución', fontsize=14, pad=15)
+    plt.grid(True, linestyle=':', alpha=0.6)
+
+    ruta_grafico = os.path.join('output', 'grafico_memoria.png')
+    os.makedirs('output', exist_ok=True)
+    plt.savefig(ruta_grafico, dpi=300)
+    print(Fore.GREEN + f"\nGráfico de memoria generado y guardado en '{ruta_grafico}'" + Fore.RESET)
 
 if __name__ == "__main__":
     args = parse_args()
-    imprimir_memoria("Inicio del programa")
+    registrar_memoria("Inicio del programa")
     #Cargar csv
     try:
         raw_data = pd.read_csv(args.file)
@@ -61,12 +139,12 @@ if __name__ == "__main__":
     raw_data['is_train'] = np.random.uniform(0, 1, len(raw_data)) <= p_train
     train, test = raw_data[raw_data['is_train'] == True], raw_data[raw_data['is_train'] == False]
 
-    imprimir_memoria("Carga CSV")
+    registrar_memoria("Carga CSV")
 
     print(Fore.MAGENTA + f"Preprocesando datos del train..." + Fore.RESET)
     train_prep = preproceso(train[args.target], args)
     print(Fore.GREEN + f"Datos preprocesados!" + Fore.RESET)
-    imprimir_memoria("Preprocesado")
+    registrar_memoria("Preprocesado")
     print("-"*60)
 
     X_train = train_prep
@@ -80,13 +158,13 @@ if __name__ == "__main__":
     os.rename('output/'+nombre_archivo, 'output/'+nombre_archivo_final)
     print(Fore.GREEN + f"Modelo guardado en output/'{nombre_archivo_final}'" + Fore.RESET)
     print(f"Centroides finales calculados: {centroides.shape[0]}")
-    imprimir_memoria("K-Means")
+    registrar_memoria("K-Means")
     print("-"*60)
 
     #Evaluación
     y_train = train[args.label].to_numpy()
     evaluar(X_train, y_train, nombre_archivo_final)
-    imprimir_memoria("Evaluación")
+    registrar_memoria("Evaluación")
     print("-"*60)
 
     #Predicción Ollama
@@ -95,4 +173,5 @@ if __name__ == "__main__":
     #Dejar abierto Ollama en segundo plano
     if args.ollama:
         predecir_clusters(nombre_archivo_final, X_train, train[args.target], args.preprocessing.get("text_process"))
-        imprimir_memoria("Ollama")
+        registrar_memoria("Ollama")
+    graficar_memoria()

@@ -55,7 +55,7 @@ def vectorizar_embeddings(text_cols, cache_dir="cache",
     ruta_cache = os.path.join(cache_dir, f"vectores_{hash_datos}.npy")
     if os.path.exists(ruta_cache):
         print(f"Cargando vectores desde caché: {ruta_cache}")
-        return np.load(ruta_cache)
+        return np.load(ruta_cache,mmap_mode='r')
 
     from sentence_transformers import SentenceTransformer
     print("Cargando modelo...")
