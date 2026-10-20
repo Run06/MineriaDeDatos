@@ -3,6 +3,17 @@
     "text_process": "doc2vec",
     "unidad": "mensaje"
   },
+  "bow": {
+    "max_features": 10000,
+    "ngram_range": [1, 2]
+  },
+  "tf-idf": {
+    "max_features": 5000,
+    "ngram_range": [1, 3],
+    "min_df": 2,
+    "max_df": 0.9,
+    "sublinear_tf": true
+  },
   "KMeans": {
     "n_clusters": 3,
     "random_state": 42,

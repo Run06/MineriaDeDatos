@@ -28,16 +28,19 @@ def preproceso(text_cols, args):
 
     if text_process == "tf-idf":
         textos = text_cols.apply(clean_text)
-        vec = TfidfVectorizer(max_features=5000,
-                              ngram_range=(1, 3),
-                              min_df=2,
-                              max_df=0.9,
-                              sublinear_tf=True)
+        tf_idf_cfg = getattr(args, "bow", {})
+        vec = TfidfVectorizer(max_features=tf_idf_cfg.get("max_features", 5000),           #Limite máximo del vocabulario
+                              ngram_range=tuple(tf_idf_cfg.get("ngram_range", (1, 3))),    #Tamaño de las agrupaciones de palabras (unigrama, bigrama, trigrama,...)
+                              min_df=tf_idf_cfg.get("min_df", 2),                          #Descarta palabras o n-gramas que aparecen en menos de 2 documentos
+                              max_df=tf_idf_cfg.get("max_df", 0.9),                        #Descarta palabras que aparecen en más del 90% de los documentos
+                              sublinear_tf=tf_idf_cfg.get("sublinear_tf", True))           #Escala logarítmica a la frecuencia (Evita que un doc que usa mucho la misma palabra opaque al resto)
         return vec.fit_transform(textos)
 
     elif text_process == "bow":
         textos = text_cols.apply(clean_text)
-        vec = CountVectorizer(max_features=10000, ngram_range=(1, 2))
+        bow_cfg = getattr(args, "bow", {})
+        vec = CountVectorizer(max_features=bow_cfg.get("max_features", 10000),            #Limite máximo del vocabulario
+                              ngram_range=tuple(bow_cfg.get("ngram_range", (1, 2))))      #Tamaño de las agrupaciones de palabras (unigrama, bigrama, trigrama,...)
         return vec.fit_transform(textos)
 
     elif text_process == "embeddings":
