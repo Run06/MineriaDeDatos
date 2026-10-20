@@ -155,3 +155,23 @@ def kmeans(X,n_clusters,random_state=42,distancia='Euclidean',modo='kmeans',max_
     return clusters, centroides, nombre_archivo
 
 
+def predict(X_nuevos, centroides, metrica='Euclidean'):
+    """
+    Fase de inferencia: Asigna nuevos datos a los clústeres existentes
+    calculando la distancia a los centroides fijos
+    """
+
+    if metrica == 'Cosine':
+        # Distancia Coseno: 1 - Similitud Coseno
+        normas_x = np.linalg.norm(X_nuevos, axis=1, keepdims=True)
+        normas_c = np.linalg.norm(centroides, axis=1, keepdims=True)
+        x_norm = X_nuevos / np.where(normas_x == 0, 1, normas_x)
+        c_norm = centroides / np.where(normas_c == 0, 1, normas_c)
+        similitud = np.dot(x_norm, c_norm.T)
+        distancias = 1 - similitud
+    else:
+        # Distancia Euclidiana clásica
+        distancias = np.array([[np.linalg.norm(x - c) for c in centroides] for x in X_nuevos])
+
+    return np.argmin(distancias, axis=1)
+
