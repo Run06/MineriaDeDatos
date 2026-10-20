@@ -20,7 +20,7 @@ def predecir_clusters(pkl, X_train, textos_train, text_process):
             distancias = np.linalg.norm(X_train - centroides[i], axis=1)
             indices_cercanos = np.argsort(distancias)[:5]
 
-            #Asegurarnos de que funcione tanto con Series de Pandas como con listas/arrays
+            #Funcional con Series de Pandas como con listas/arrays
             if hasattr(textos_train, 'iloc'):
                 ejemplos_textos = [f"- {textos_train.iloc[idx]}" for idx in indices_cercanos]
             else:
@@ -33,7 +33,7 @@ def predecir_clusters(pkl, X_train, textos_train, text_process):
         #Definir prompt
         prompt = (
             f"{info_contexto}\n\n"
-            f"Basándote exclusivamente en esta información, responde estrictamente con:\n"
+            f"Basándote exclusivamente en estos textos, responde estrictamente con:\n"
             f"1. Una etiqueta de entre (Supportive, Ideation, Behavior, Attempt) según la probabilidad de cometer suicidio, una única palabra."
             f"2. Una explicación de una sola línea de por qué."
         )

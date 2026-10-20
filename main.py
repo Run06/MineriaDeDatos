@@ -24,7 +24,6 @@ def parse_args():
     parser.add_argument("-o", "--ollama", default=False, help="Aplicar predicción de Ollama sobre los clusters")
     parser.add_argument("-t", "--target", required=True, help="Columna de la tabla a clasificar")
     parser.add_argument("-l", "--label", default='Label', help="Columna del Label para métricas externas")
-    parser.add_argument("-s", "--sample", type=float, default=1.0, help="Porcentaje de datos a usar (0.0 a 1.0)")
 
     args = parser.parse_args()
 

@@ -1,8 +1,18 @@
+import argparse
 import json
 import os
 import sys
 import subprocess
+
+import optuna
 import pandas as pd
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Obtimizador de combinaciones del clasificador no supervisado K-Means")
+    parser.add_argument("-n", "--num", default=25, type=int, help="Número de combinaciones/iteraciones inteligentes de Optuna")
+    parser.add_argument("-m", "--max", default=20, type=int, help="Número máximo de clusters para la prueba")
+    args = parser.parse_args()
+    return args
 
 def cargar_config(ruta="clasificador.json"):
     with open(ruta, "r") as f:
@@ -26,79 +36,35 @@ def cargar_metricas():
         print(f"Error leyendo el CSV de métricas: {e}")
         sys.exit(-1)
 
-def busqueda_ternaria_k(k_min=1, k_max=500):
-    cache = {}
-
-    def evaluar_k(k):
-        if k < 2 or k >= 500:  #Límite operativo seguro
-            print("El valor de k debe ser mayor a 1 y menor o igual al número de instancias")
-            sys.exit(-1)
-        if k in cache:
-            return cache[k]
-
-        conf = cargar_config("clasificador.json")
-        conf["KMeans"]["n_clusters"] = k
-        guardar_config(conf, "clasificador.json")
-
-        subprocess.run([
+def objetivo(trial):
+    t = trial.suggest_categorical("text_process", ["tf-idf", "bow", "embeddings"])
+    d = trial.suggest_categorical("distancia", ["Euclidean", "Cosine"])
+    m = trial.suggest_categorical("modo", ["kmeans", "plusplus"])
+    k = trial.suggest_int("n_clusters", 2, args.max)
+    print(f"Probando: {t} {d} {m} k={k}")
+    conf = cargar_config("clasificador.json")
+    conf["preprocessing"]["text_process"] = t
+    conf["KMeans"]["distancia"] = d
+    conf["KMeans"]["modo"] = m
+    conf["KMeans"]["n_clusters"] = k
+    guardar_config(conf, "clasificador.json")
+    subprocess.run([
             sys.executable,
             "main.py",
             "-f", "500_Reddit_users_posts_labels.csv",
             "-t", "Post",
-            "-l", "Label"
+            "-l", "Label",
         ])
-        df = cargar_metricas()
-        score = float(df["Silhouette_Score"].iloc[-1])
-        cache[k] = score
-        return score
-
-    left = max(2, k_min)
-    right = k_max
-
-    best_score = -1.0
-    best_k = left
-
-    #Búsqueda ternaria
-    while right - left > 2:
-        m1 = left + (right - left) // 3
-        m2 = right - (right - left) // 3
-
-        score1 = evaluar_k(m1)
-        score2 = evaluar_k(m2)
-
-        if score1 > best_score:
-            best_score, best_k = score1, m1
-        if score2 > best_score:
-            best_score, best_k = score2, m2
-
-        if score1 < score2:
-            left = m1
-        else:
-            right = m2
-
-    #Exploración fina final en el rango restante
-    for k in range(left, right + 1):
-        score = evaluar_k(k)
-        if score > best_score:
-            best_score, best_k = score, k
-
-    return best_k, best_score
+    df = cargar_metricas()
+    score = float(df["Silhouette_Score"].iloc[-1])
+    return score
 
 if __name__ == "__main__":
-    text_process = ['tf-idf','bow','embeddings']
-    distancia = ['Euclidean', 'Cosine']
-    modo = ['kmeans','plusplus']
-    for t in text_process:
-        for d in distancia:
-            for m in modo:
-                print("Realizando búsqueda ternaria: "+t+" "+d+""+m)
-                conf = cargar_config("clasificador.json")
-                conf["preprocessing"]["text_process"] = t
-                conf["KMeans"]["distancia"] = d
-                conf["KMeans"]["modo"] = m
-                guardar_config(conf, "clasificador.json")
-                k, silhouette = busqueda_ternaria_k(k_min=2, k_max=500)
-                print(f"Mejor k: {k} con Silhouette {silhouette:.4f}")
+    args = parse_args()
+    study = optuna.create_study(direction="maximize")
+    N_TRIALS = args.num #cuántas combinaciones/iteraciones inteligentes (Default 25)
+    print("Ejecutando estudio Bayesiano con Optuna...")
+    study.optimize(objetivo, n_trials=N_TRIALS)
     print("-"*60)
     df = cargar_metricas()
     df_sorted = df.sort_values(by="Silhouette_Score", ascending=False)
