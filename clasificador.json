@@ -1,6 +1,6 @@
 {
   "preprocessing": {
-    "text_process": "embeddings",
+    "text_process": "doc2vec",
     "unidad": "mensaje"
   },
   "KMeans": {

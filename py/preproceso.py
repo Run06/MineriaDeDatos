@@ -2,6 +2,8 @@ import ast
 import hashlib
 import os
 import re
+import time
+import zlib
 import nltk
 import numpy as np
 import pandas as pd
@@ -15,11 +17,14 @@ MAX_CHUNKS = 50       # tope de trozos por instancia cuando la instancia es un u
 MAX_CHUNKS_MENSAJE = 10   # tope cuando la instancia es un mensaje (None = sin tope)
 COL_TEXTO = "Mensaje"     # nombre de la columna de texto que generan las instancias
 UNIDADES = ("usuario", "mensaje")
+MODELO_EMOCIONES = "pysentimiento-emotion-en"   # BERTweet fine-tuned en emociones (inglés)
 
 # Preproceso de los datos
 def preproceso(text_cols, args):
-    text_process = args.preprocessing.get("text_process", "none")
-    unidad = args.preprocessing.get("unidad", "usuario")
+    cfg = args.preprocessing
+    text_process = cfg.get("text_process", "none")
+    unidad = cfg.get("unidad", "usuario")
+    max_chunks_defecto = MAX_CHUNKS_MENSAJE if unidad == "mensaje" else MAX_CHUNKS
 
     if text_process == "tf-idf":
         textos = text_cols.apply(clean_text)
@@ -38,32 +43,45 @@ def preproceso(text_cols, args):
     elif text_process == "embeddings":
         return vectorizar_embeddings(
             text_cols,
-            cache_dir=args.preprocessing.get("cache_dir", "cache"),
-            chunk_palabras=args.preprocessing.get("chunk_palabras", CHUNK_PALABRAS),
-            max_chunks=args.preprocessing.get(
-                "max_chunks", MAX_CHUNKS_MENSAJE if unidad == "mensaje" else MAX_CHUNKS),
+            cache_dir=cfg.get("cache_dir", "cache"),
+            chunk_palabras=cfg.get("chunk_palabras", CHUNK_PALABRAS),
+            max_chunks=cfg.get("max_chunks", max_chunks_defecto),
+        )
+
+    elif text_process == "doc2vec":
+        return vectorizar_doc2vec(
+            text_cols,
+            vector_size=cfg.get("vector_size", 100),
+            epochs=cfg.get("epochs", 40),
+            min_count=cfg.get("min_count", 2),
+            window=cfg.get("window", 5),
+            dm=cfg.get("dm", 0),
+            dbow_words=cfg.get("dbow_words", 0),
+            workers=cfg.get("workers", 1),
+        )
+
+    elif text_process == "emotion":
+        return vectorizar_emociones(
+            text_cols,
+            cache_dir=cfg.get("cache_dir", "cache"),
+            chunk_palabras=cfg.get("chunk_palabras", CHUNK_PALABRAS),
+            max_chunks=cfg.get("max_chunks", max_chunks_defecto),
         )
 
     else:
         raise ValueError(f"text_process no soportado: {text_process}")
 
-# Embeddings con caché
-def vectorizar_embeddings(text_cols, cache_dir="cache",
-                          chunk_palabras=CHUNK_PALABRAS, max_chunks=MAX_CHUNKS):
-    textos = [str(t) for t in text_cols]   # un mensaje por elemento
-
-    firma = f"{MODELO_EMBEDDINGS}|msg|{chunk_palabras}|{max_chunks}||"
+# Núcleo común de las aproximaciones densas basadas en un modelo preentrenado:
+# trocear -> codificar -> promediar los trozos de cada instancia -> (normalizar) -> caché
+def _vectorizar_por_trozos(textos, firma, prefijo, cache_dir, chunk_palabras, max_chunks,
+                           codificar, normalizar=True):
     hash_datos = hashlib.md5((firma + "\x1f".join(textos)).encode("utf-8")).hexdigest()[:12]
 
     os.makedirs(cache_dir, exist_ok=True)
-    ruta_cache = os.path.join(cache_dir, f"vectores_{hash_datos}.npy")
+    ruta_cache = os.path.join(cache_dir, f"{prefijo}_{hash_datos}.npy")
     if os.path.exists(ruta_cache):
         print(f"Cargando vectores desde caché: {ruta_cache}")
-        return np.load(ruta_cache,mmap_mode='r')
-
-    from sentence_transformers import SentenceTransformer
-    print("Cargando modelo...")
-    modelo = SentenceTransformer(MODELO_EMBEDDINGS)
+        return np.load(ruta_cache, mmap_mode='r')
 
     todos_chunks, inicios = [], []
     for t in textos:
@@ -72,17 +90,105 @@ def vectorizar_embeddings(text_cols, cache_dir="cache",
     fines = inicios[1:] + [len(todos_chunks)]
     print(f"{len(textos)} mensajes -> {len(todos_chunks)} trozos")
 
-    print("Vectorizando textos...")
-    emb = modelo.encode(todos_chunks, batch_size=64,
-                        show_progress_bar=True, normalize_embeddings=True)
+    emb = codificar(todos_chunks)
 
-    X_raw = np.vstack([emb[i:f].mean(axis=0) for i, f in zip(inicios, fines)])
-    normas = np.linalg.norm(X_raw, axis=1, keepdims=True)
-    normas[normas == 0] = 1
-    X = X_raw / normas
+    X = np.vstack([emb[i:f].mean(axis=0) for i, f in zip(inicios, fines)])
+    if normalizar:
+        normas = np.linalg.norm(X, axis=1, keepdims=True)
+        normas[normas == 0] = 1
+        X = X / normas
 
     np.save(ruta_cache, X)
     print(f"Vectores guardados en {ruta_cache} con forma {X.shape}")
+    return X
+
+# Embeddings contextuales (sentence-transformers) con caché
+def vectorizar_embeddings(text_cols, cache_dir="cache",
+                          chunk_palabras=CHUNK_PALABRAS, max_chunks=MAX_CHUNKS):
+    textos = [str(t) for t in text_cols]   # un mensaje por elemento
+    # La firma NO ha cambiado: las cachés de embeddings que ya tengas se siguen reutilizando
+    firma = f"{MODELO_EMBEDDINGS}|msg|{chunk_palabras}|{max_chunks}||"
+
+    def codificar(chunks):
+        from sentence_transformers import SentenceTransformer
+        print("Cargando modelo...")
+        modelo = SentenceTransformer(MODELO_EMBEDDINGS)
+        print("Vectorizando textos...")
+        return modelo.encode(chunks, batch_size=64,
+                             show_progress_bar=True, normalize_embeddings=True)
+
+    return _vectorizar_por_trozos(textos, firma, "vectores", cache_dir,
+                                  chunk_palabras, max_chunks, codificar, normalizar=True)
+
+# Embedding emocional (pysentimiento): cada instancia -> vector de 7 probabilidades de emoción
+# (orden alfabético: anger, disgust, fear, joy, others, sadness, surprise)
+def vectorizar_emociones(text_cols, cache_dir="cache",
+                         chunk_palabras=CHUNK_PALABRAS, max_chunks=MAX_CHUNKS):
+    textos = [str(t) for t in text_cols]
+    firma = f"{MODELO_EMOCIONES}|emo|{chunk_palabras}|{max_chunks}||"
+
+    def codificar(chunks):
+        # Silenciar avisos y barras de progreso internas de Hugging Face (una por llamada a predict)
+        os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+        from pysentimiento import create_analyzer
+        try:
+            import datasets
+            datasets.disable_progress_bars()
+        except Exception:
+            pass
+
+        print("Cargando analizador de emociones...")
+        analizador = create_analyzer(task="emotion", lang="en", batch_size=64)
+
+        # pysentimiento rellena (padding) cada lote hasta el texto más largo y NO ordena por longitud:
+        # mezclar textos cortos y largos desperdicia cálculo. Se procesan de más largo a más corto
+        # (así, además, la estimación de tiempo restante es pesimista, no optimista) y luego se
+        # restaura el orden original.
+        orden = np.argsort([-len(c) for c in chunks], kind="stable")
+        salida = [None] * len(chunks)
+        bloque = 512   # cada predict() crea un Dataset y un Trainer: mejor pocas llamadas grandes
+        t0 = time.time()
+        for ini in range(0, len(orden), bloque):
+            idx = orden[ini:ini + bloque]
+            for j, r in zip(idx, analizador.predict([chunks[j] for j in idx])):
+                salida[j] = [r.probas[k] for k in sorted(r.probas)]
+            hechos = ini + len(idx)
+            t = time.time() - t0
+            resto = t / hechos * (len(chunks) - hechos)
+            print(f"  emociones: {hechos}/{len(chunks)} trozos | {t / 60:.1f} min | "
+                  f"quedan como mucho ~{resto / 60:.1f} min", flush=True)
+        return np.asarray(salida, dtype=np.float32)
+
+    # Sin normalización L2: las probabilidades ya suman 1 y conservan su significado
+    return _vectorizar_por_trozos(textos, firma, "emociones", cache_dir,
+                                  chunk_palabras, max_chunks, codificar, normalizar=False)
+
+# Doc2Vec (gensim): se ENTRENA con los propios textos (no hay modelo preentrenado)
+def _hash_estable(s):
+    # El hash por defecto de Python cambia en cada ejecución; con este el entrenamiento es reproducible
+    return zlib.crc32(s.encode("utf-8") if isinstance(s, str) else s)
+
+def vectorizar_doc2vec(text_cols, vector_size=100, epochs=40, min_count=2,
+                       window=5, dm=0, dbow_words=0, workers=1, seed=42):
+    from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+    from gensim.utils import simple_preprocess
+
+    # Tokenización ligera: minúsculas y palabras (sin stemming ni stopwords: Doc2Vec las aprovecha)
+    docs = [TaggedDocument(simple_preprocess(str(t), min_len=2, max_len=30), [i])
+            for i, t in enumerate(text_cols)]
+    print(f"Entrenando Doc2Vec ({'PV-DM' if dm else 'PV-DBOW'}) con {len(docs)} documentos...")
+
+    modelo = Doc2Vec(vector_size=vector_size, min_count=min_count, window=window,
+                     dm=dm, dbow_words=0 if dm else dbow_words,   # PV-DBOW: dbow_words=1 entrena también las palabras (~5x más lento, sin mejora apreciable aquí)
+                     epochs=epochs, workers=workers, seed=seed, hashfxn=_hash_estable)
+    modelo.build_vocab(docs)
+    modelo.train(docs, total_examples=modelo.corpus_count, epochs=modelo.epochs)
+
+    X = np.vstack([modelo.dv[i] for i in range(len(docs))])
+    normas = np.linalg.norm(X, axis=1, keepdims=True)
+    normas[normas == 0] = 1
+    X = X / normas
+    print(f"Doc2Vec listo: matriz {X.shape} (vocabulario: {len(modelo.wv)} palabras)")
     return X
 
 def parsear_mensajes(crudo):
