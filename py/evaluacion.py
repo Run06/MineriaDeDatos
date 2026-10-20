@@ -20,7 +20,7 @@ def evaluar(X_Train, y_train, pkl):
     #---
     print(Fore.YELLOW + f"Empleando métodos de evaluación Internos..." + Fore.RESET)
     #Cohesión interna
-    cohesion = sum(np.min(np.linalg.norm(X_Train - centroides[i], axis=1)**2) for i in range(n_clusters))
+    cohesion = sum(np.sum((X_Train[labels_pred == i] - centroides[i])**2) for i in range(n_clusters))
     print(f"Cohesión Interna (Inercia): {cohesion:.4f} (Menor es más coherente cada cluster)")
     #Separabilidad externa
     dist_matrix = euclidean_distances(centroides)
@@ -53,14 +53,14 @@ def evaluar(X_Train, y_train, pkl):
         "NClusters": n_clusters,
 
         # Métricas Internas
-        "Cohesion_Inercia": cohesion,
-        "Separabilidad_Min_Dist": separabilidad,
+        "Cohesion": cohesion,
+        "Separabilidad": separabilidad,
         "Silhouette_Score": sil_score,
 
         # Métricas Externas
         "Jaccard_Index": jaccard,
         "Rand_Index": rand,
-        "Fowlkes_Mallows_Index": fmi
+        "Fowlkes_Mallows": fmi
     }
 
     if os.path.exists('output/metricas_modelos.csv'):
