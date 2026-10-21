@@ -30,7 +30,7 @@ def preproceso(text_cols, args):
 
     if text_process == "tf-idf":
         textos = text_cols.apply(clean_text)
-        tf_idf_cfg = getattr(args, "bow", {})
+        tf_idf_cfg = getattr(args, "tf-idf", {})
         vec = TfidfVectorizer(max_features=tf_idf_cfg.get("max_features", 5000),           #Limite máximo del vocabulario
                               ngram_range=tuple(tf_idf_cfg.get("ngram_range", (1, 3))),    #Tamaño de las agrupaciones de palabras (unigrama, bigrama, trigrama,...)
                               min_df=tf_idf_cfg.get("min_df", 2),                          #Descarta palabras o n-gramas que aparecen en menos de 2 documentos
