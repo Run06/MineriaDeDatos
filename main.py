@@ -134,20 +134,28 @@ if __name__ == "__main__":
         print(f"Error: El archivo '{args.file}' no existe o la ruta es incorrecta.")
         sys.exit(-1)
 
-    #División train test, 0.7
-    p_train = 0.7
-    np.random.seed(42)
-    raw_data['is_train'] = np.random.uniform(0, 1, len(raw_data)) <= p_train
-    train, test = raw_data[raw_data['is_train'] == True], raw_data[raw_data['is_train'] == False]
+    #Carga de train test o división train test, 0.7
+    if os.path.exists("train.csv") and os.path.exists("test.csv"):
+        print("Cargando ficheros train y test existentes...")
+        train = pd.read_csv("train.csv")
+        test = pd.read_csv("test.csv")
+        registrar_memoria("Carga CSV (desde ficheros guardados)")
+    else:
+        print("Los ficheros no existen. Generando train/test...")
+        p_train = 0.7
+        np.random.seed(42)
+        raw_data['is_train'] = np.random.uniform(0, 1, len(raw_data)) <= p_train
+        train, test = raw_data[raw_data['is_train'] == True], raw_data[raw_data['is_train'] == False]
+        #Unidad de análisis: "usuario" (una fila por usuario) o "mensaje" (una fila por mensaje)
+        #Se divide ANTES por usuario (arriba) para que los mensajes de un mismo usuario no caigan en train y test
+        unidad = args.preprocessing.get("unidad", "usuario")
+        train = preparar_instancias(train, args)
+        test = preparar_instancias(test, args)
+        print(f"Unidad de análisis: {unidad} -> {len(train)} instancias en train, {len(test)} en test")
+        train.to_csv("train.csv", index=False)
+        test.to_csv("test.csv", index=False)
 
     registrar_memoria("Carga CSV")
-
-    #Unidad de análisis: "usuario" (una fila por usuario) o "mensaje" (una fila por mensaje)
-    #Se divide ANTES por usuario (arriba) para que los mensajes de un mismo usuario no caigan en train y test
-    unidad = args.preprocessing.get("unidad", "usuario")
-    train = preparar_instancias(train, args)
-    test = preparar_instancias(test, args)
-    print(f"Unidad de análisis: {unidad} -> {len(train)} instancias en train, {len(test)} en test")
 
     print(Fore.MAGENTA + f"Preprocesando datos del train..." + Fore.RESET)
     train_prep = preproceso(train[COL_TEXTO], args)
