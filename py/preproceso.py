@@ -5,6 +5,7 @@ import re
 import time
 import zlib
 import nltk
+import torch
 import numpy as np
 import pandas as pd
 from nltk import SnowballStemmer, word_tokenize
@@ -18,6 +19,7 @@ MAX_CHUNKS_MENSAJE = 10   # tope cuando la instancia es un mensaje (None = sin t
 COL_TEXTO = "Mensaje"     # nombre de la columna de texto que generan las instancias
 UNIDADES = ("usuario", "mensaje")
 MODELO_EMOCIONES = "pysentimiento-emotion-en"   # BERTweet fine-tuned en emociones (inglés)
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Preproceso de los datos
 def preproceso(text_cols, args):
@@ -114,10 +116,10 @@ def vectorizar_embeddings(text_cols, cache_dir="cache",
 
     def codificar(chunks):
         from sentence_transformers import SentenceTransformer
-        print("Cargando modelo...")
-        modelo = SentenceTransformer(MODELO_EMBEDDINGS)
+        print(f"Cargando modelo en dispositivo: {DEVICE}...")
+        modelo = SentenceTransformer(MODELO_EMBEDDINGS, device=DEVICE)
         print("Vectorizando textos...")
-        return modelo.encode(chunks, batch_size=64,
+        return modelo.encode(chunks, batch_size=128,
                              show_progress_bar=True, normalize_embeddings=True)
 
     return _vectorizar_por_trozos(textos, firma, "vectores", cache_dir,
@@ -140,8 +142,10 @@ def vectorizar_emociones(text_cols, cache_dir="cache",
         except Exception:
             pass
 
-        print("Cargando analizador de emociones...")
-        analizador = create_analyzer(task="emotion", lang="en", batch_size=64)
+        print(f"Cargando analizador de emociones en dispositivo: {DEVICE}...")
+        # device=0 usa la primera GPU disponible, -1 usa CPU
+        device_id = 0 if DEVICE == "cuda" else -1
+        analizador = create_analyzer(task="emotion", lang="en", device=device_id)
 
         # pysentimiento rellena (padding) cada lote hasta el texto más largo y NO ordena por longitud:
         # mezclar textos cortos y largos desperdicia cálculo. Se procesan de más largo a más corto
@@ -172,7 +176,7 @@ def _hash_estable(s):
     return zlib.crc32(s.encode("utf-8") if isinstance(s, str) else s)
 
 def vectorizar_doc2vec(text_cols, vector_size=100, epochs=40, min_count=2,
-                       window=5, dm=0, dbow_words=0, workers=1, seed=42):
+                       window=5, dm=0, dbow_words=0, workers=os.cpu_count(), seed=42):
     from gensim.models.doc2vec import Doc2Vec, TaggedDocument
     from gensim.utils import simple_preprocess
 

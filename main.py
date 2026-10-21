@@ -121,7 +121,7 @@ def graficar_memoria(nombre_modelo="grafico_memoria"):
     plt.grid(True, linestyle=':', alpha=0.6)
 
     nombre_limpio = nombre_modelo.replace('.pkl', '')
-    ruta_grafico = os.path.join('output', 'UsoDeMemoria', f"{nombre_limpio}.png")
+    ruta_grafico = os.path.join('output', 'usoDeMemoria', f"{nombre_limpio}.png")
     os.makedirs(os.path.dirname(ruta_grafico), exist_ok=True)
     plt.savefig(ruta_grafico, dpi=300)
     print(Fore.GREEN + f"\nGráfico guardado en '{ruta_grafico}'" + Fore.RESET)
