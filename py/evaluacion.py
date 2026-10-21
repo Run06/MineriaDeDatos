@@ -20,7 +20,7 @@ def evaluar(X_Train, y_train, pkl):
     #---
     print(Fore.YELLOW + f"Empleando métodos de evaluación Internos..." + Fore.RESET)
     #Cohesión interna
-    cohesion = sum(np.sum((X_Train[labels_pred == i] - centroides[i])**2) for i in range(n_clusters))
+    cohesion = sum(np.sum(np.asarray(X_Train[labels_pred == i] - centroides[i]) ** 2) for i in range(n_clusters))
     print(f"Cohesión Interna (Inercia): {cohesion:.4f} (Menor es más coherente cada cluster)")
     #Separabilidad externa
     dist_matrix = euclidean_distances(centroides)
