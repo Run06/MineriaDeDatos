@@ -33,7 +33,7 @@ def predecir_clusters(pkl, X_train, textos_train, text_process):
         #Definir prompt
         prompt = (
             f"{info_contexto}\n\n"
-            f"Basándote exclusivamente en estos textos, responde estrictamente con:\n"
+            f"Basándote exclusivamente en estos textos, responde estrictamente con (Si no pudieras responder, di brevemente la razón, dos o tres palabras.):\n"
             f"1. Una etiqueta que resuma todos los textos, máximo tres palabras."
             f"2. Una explicación de una sola línea de por qué."
         )
