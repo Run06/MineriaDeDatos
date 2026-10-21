@@ -9,7 +9,7 @@ from sklearn.metrics.cluster import contingency_matrix
 
 
 def evaluar(X_Train, y_train, pkl):
-    file_path = os.path.join('output/', pkl)
+    file_path = os.path.join('output/', 'modelos', pkl)
     with open(file_path, 'rb') as f:
         data = pickle.load(f)
 

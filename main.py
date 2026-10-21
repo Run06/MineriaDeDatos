@@ -58,7 +58,7 @@ def registrar_memoria(fase):
     print(Fore.CYAN + f"[{fase}]" + Fore.RESET)
     print(f"  ├─ RAM Python:  Actual {mem_proceso_mb:.2f} MB | Pico: {pico_python:.2f} MB")
     print(f"  └─ RAM Sistema: Actual {mem_sistema_gb:.2f} GB | Pico: {pico_sistema:.2f} GB\n")
-def graficar_memoria():
+def graficar_memoria(nombre_modelo="grafico_memoria"):
     if not historial_memoria:
         return
 
@@ -74,6 +74,7 @@ def graficar_memoria():
     ax1.set_ylabel('RAM Script Python (MB)', color=color1, fontweight='bold')
     ax1.plot(fases, ram_python, marker='o', color=color1, linewidth=2, label='Python (MB)')
     ax1.tick_params(axis='y', labelcolor=color1)
+    ax1.set_xticks(range(len(fases)))
     ax1.set_xticklabels(fases, rotation=45, ha="right")
 
     max_python = max(ram_python)
@@ -117,10 +118,11 @@ def graficar_memoria():
     plt.title('Perfil de Consumo de Memoria durante la Ejecución', fontsize=14, pad=15)
     plt.grid(True, linestyle=':', alpha=0.6)
 
-    ruta_grafico = os.path.join('output', 'grafico_memoria.png')
-    os.makedirs('output', exist_ok=True)
+    nombre_limpio = nombre_modelo.replace('.pkl', '')
+    ruta_grafico = os.path.join('output', 'UsoDeMemoria', f"{nombre_limpio}.png")
+    os.makedirs(os.path.dirname(ruta_grafico), exist_ok=True)
     plt.savefig(ruta_grafico, dpi=300)
-    print(Fore.GREEN + f"\nGráfico de memoria generado y guardado en '{ruta_grafico}'" + Fore.RESET)
+    print(Fore.GREEN + f"\nGráfico guardado en '{ruta_grafico}'" + Fore.RESET)
 
 if __name__ == "__main__":
     args = parse_args()
@@ -159,10 +161,13 @@ if __name__ == "__main__":
     print(Fore.MAGENTA + f"Ejecutando K-Means..." + Fore.RESET)
     clusters, centroides, nombre_archivo = kmeans(X_train, **args.KMeans)
     nombre_archivo_final = args.preprocessing.get("text_process")+'-'+unidad+'-'+nombre_archivo
-    if os.path.exists('output/'+nombre_archivo_final):
-        os.remove('output/'+nombre_archivo_final)
-    os.rename('output/'+nombre_archivo, 'output/'+nombre_archivo_final)
-    print(Fore.GREEN + f"Modelo guardado en output/'{nombre_archivo_final}'" + Fore.RESET)
+    os.makedirs(os.path.join('output', 'modelos'), exist_ok=True)
+    ruta_origen = os.path.join('output', nombre_archivo)
+    ruta_destino = os.path.join('output', 'modelos', nombre_archivo_final)
+    if os.path.exists(ruta_destino):
+        os.remove(ruta_destino)
+    os.rename(ruta_origen, ruta_destino)
+    print(Fore.GREEN + f"Modelo guardado en '{ruta_destino}'" + Fore.RESET)
     print(f"Centroides finales calculados: {centroides.shape[0]}")
     registrar_memoria("K-Means")
     print("-"*60)
@@ -180,4 +185,4 @@ if __name__ == "__main__":
     if args.ollama:
         predecir_clusters(nombre_archivo_final, X_train, train[COL_TEXTO], args.preprocessing.get("text_process"))
         registrar_memoria("Ollama")
-    graficar_memoria()
+    graficar_memoria(nombre_archivo_final)
