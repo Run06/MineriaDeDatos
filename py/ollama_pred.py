@@ -5,7 +5,7 @@ from colorama import Fore
 import ollama
 
 def predecir_clusters(pkl, X_train, textos_train, text_process):
-    file_path = os.path.join('output/', pkl)
+    file_path = os.path.join('output/modelos/', pkl)
     with open(file_path, 'rb') as f:
         data = pickle.load(f)
 
@@ -16,7 +16,7 @@ def predecir_clusters(pkl, X_train, textos_train, text_process):
 
     for i in range(n_clusters):
         print(Fore.CYAN + f"Clúster {i}" + Fore.RESET)
-        if text_process in ["bow", "tf-idf", "embeddings"]:
+        if text_process in ["bow", "tf-idf", "embeddings", "doc2vec", "emotion"]:
             distancias = np.linalg.norm(X_train - centroides[i], axis=1)
             indices_cercanos = np.argsort(distancias)[:5]
 
@@ -34,7 +34,7 @@ def predecir_clusters(pkl, X_train, textos_train, text_process):
         prompt = (
             f"{info_contexto}\n\n"
             f"Basándote exclusivamente en estos textos, responde estrictamente con:\n"
-            f"1. Una etiqueta de entre (Supportive, Ideation, Behavior, Attempt) según la probabilidad de cometer suicidio, una única palabra."
+            f"1. Una etiqueta que resuma todos los textos, máximo tres palabras."
             f"2. Una explicación de una sola línea de por qué."
         )
 
@@ -44,7 +44,9 @@ def predecir_clusters(pkl, X_train, textos_train, text_process):
             messages=[
                 {
                     'role': 'system',
-                    'content': 'Eres un analista experto en minería de datos. Sé muy conciso.'
+                    'content': 'Eres un analista experto en minería de datos, '
+                               'que está realizando un análisis para detectar síntomas de malestar emocional en la gente en redes sociales.'
+                               'Sé muy conciso.'
                 },
                 {
                     'role': 'user',

@@ -35,6 +35,7 @@ def parse_args():
     return args
 #Lista global
 historial_memoria = []
+
 def registrar_memoria(fase):
     #Obtener memoria actual
     proceso = psutil.Process(os.getpid())
@@ -58,6 +59,7 @@ def registrar_memoria(fase):
     print(Fore.CYAN + f"[{fase}]" + Fore.RESET)
     print(f"  ├─ RAM Python:  Actual {mem_proceso_mb:.2f} MB | Pico: {pico_python:.2f} MB")
     print(f"  └─ RAM Sistema: Actual {mem_sistema_gb:.2f} GB | Pico: {pico_sistema:.2f} GB\n")
+
 def graficar_memoria(nombre_modelo="grafico_memoria"):
     if not historial_memoria:
         return
@@ -186,4 +188,5 @@ if __name__ == "__main__":
     if args.ollama:
         predecir_clusters(nombre_archivo_final, X_train, train[COL_TEXTO], args.preprocessing.get("text_process"))
         registrar_memoria("Ollama")
+
     graficar_memoria(nombre_archivo_final)
