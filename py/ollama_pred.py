@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 from colorama import Fore
 import ollama
+from py.k_means import calcular_distancias
 
 def predecir_clusters(pkl, X_train, textos_train, text_process):
     file_path = os.path.join('output/modelos/', pkl)
@@ -12,21 +13,40 @@ def predecir_clusters(pkl, X_train, textos_train, text_process):
     centroides = data['cluster_centers_']
     n_clusters = data['n_clusters']
 
+    etiquetas = np.asarray(data["labels_"])
+    metrica = data.get("distancia", "Euclidean")
+
+    if len(etiquetas) != X_train.shape[0]:
+        raise ValueError(
+            "Las etiquetas guardadas no coinciden con las filas de entrenamiento."
+        )
+
+    distancias = calcular_distancias(
+        X_train,
+        centroides,
+        metrica,
+    )
+
     print(Fore.CYAN + f"Interpretación de clústeres con Ollama..." + Fore.RESET)
 
     for i in range(n_clusters):
-        print(Fore.CYAN + f"Clúster {i}" + Fore.RESET)
         if text_process in ["bow", "tf-idf", "embeddings", "doc2vec", "emotion"]:
-            distancias = np.linalg.norm(X_train - centroides[i], axis=1)
-            indices_cercanos = np.argsort(distancias)[:5]
-
-            #Funcional con Series de Pandas como con listas/arrays
-            if hasattr(textos_train, 'iloc'):
-                ejemplos_textos = [f"- {textos_train.iloc[idx]}" for idx in indices_cercanos]
+            print(Fore.CYAN + f"Clúster {i}" + Fore.RESET)
+            indices = np.flatnonzero(etiquetas == i)
+            if len(indices) == 0:
+                print("Clúster vacío: no hay ejemplos para interpretar.")
+                print("-" * 20)
+                continue
+            # Elegir los cinco miembros más próximos al centroide.
+            indices = indices[
+                np.argsort(distancias[indices, i])[:5]
+            ]
+            if hasattr(textos_train, "iloc"):
+                ejemplos_textos = [f"- {textos_train.iloc[idx]}" for idx in indices]
             else:
-                ejemplos_textos = [f"- {textos_train[idx]}" for idx in indices_cercanos]
+                ejemplos_textos = [f"- {textos_train[idx]}" for idx in indices]
 
-            info_contexto = "Ejemplos de textos que pertenecen a este clúster:\n" + "\n".join(ejemplos_textos)
+            info_contexto = ("Ejemplos representativos del clúster:\n" + "\n".join(ejemplos_textos))
         else:
             raise ValueError(f"text_process no soportado: {text_process}")
 
