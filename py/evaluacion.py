@@ -9,6 +9,11 @@ from sklearn.metrics.cluster import contingency_matrix
 
 
 def evaluar(X_Train, y_train, pkl):
+    """
+    - Precondición: El archivo .pkl del modelo debe existir dentro del directorio output/modelos/.
+    - Inputs: Matriz de entrenamiento X_Train, etiquetas reales y_train y nombre del archivo pkl.
+    - Outputs: Imprime métricas internas y externas por consola y añade los registros al archivo CSV output/metricas_modelos.csv.
+    """
     file_path = os.path.join('output/', 'modelos', pkl)
     with open(file_path, 'rb') as f:
         data = pickle.load(f)
@@ -75,6 +80,11 @@ def evaluar(X_Train, y_train, pkl):
 
 
 def jaccard_clustering(conf_matrix):
+    """
+    - Precondición: La matriz de contingencia de entrada debe tener dimensiones válidas para clústeres.
+    - Inputs: Matriz de contingencia conf_matrix.
+    - Outputs: Un valor de tipo float que representa el índice de similitud de Jaccard.
+    """
     #Función auxiliar, calcular combinaciones de parejas: n*(n-1)/2
     n_comb = lambda n: n * (n - 1) // 2 if n >= 2 else 0
     #Calcular N11 (pares en el mismo clúster en ambas particiones)

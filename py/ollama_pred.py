@@ -6,6 +6,11 @@ import ollama
 from py.k_means import calcular_distancias
 
 def predecir_clusters(pkl, X_train, textos_train, text_process):
+    """
+    - Precondición: La longitud de las etiquetas guardadas en el archivo .pkl debe coincidir exactamente con el número de filas de X_train.
+    - Inputs: Nombre del archivo modelo pkl, matriz de entrenamiento X_train, serie/lista de textos de entrenamiento textos_train y el mét0do de procesamiento text_process.
+    - Outputs: No retorna un valor directo, pero imprime por consola la interpretación generada por el modelo LLM a través de Ollama.
+    """
     file_path = os.path.join('output/modelos/', pkl)
     with open(file_path, 'rb') as f:
         data = pickle.load(f)

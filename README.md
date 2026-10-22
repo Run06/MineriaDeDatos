@@ -15,11 +15,13 @@ pip install -r requirements.txt
 ## Commands
 ### Main
 Dado un csv (-f) y una columna objetivo (-t), ejecuta clasificación NO supervisada (K-Means). Emplea los parámetros del clasficador.json, para tanto el preproceso como el clustering. Asimismo, divide los datos en train test, los datos del test quedan almacenados en un test.csv por si se quiere usar en demo.py.
+
+Precondición: el csv de datos debe contener una columna de mensajes (target, -t) y una columna de labels (labels, -l, default="Label") para el cálculo de las métricas de evaluación externas.
 ````
 python main --help
 ````
 ````
-python main.py -f 500_Reddit_users_posts_labels.csv -t Post
+python main.py -f 500_Reddit_users_posts_labels.csv -t Post -l Label
 ````
 
 ### Ollama
@@ -33,7 +35,7 @@ A veces falla con textos muy explícitos, ya que la Ollama se niega a responder;
 3. Asegúrate de que Ollama está ejecutándose en segundo plano.
 4. Ejecutar main con Ollama:
     ````
-    python main.py -f 500_Reddit_users_posts_labels.csv -t Post -o True
+    python main.py -f 500_Reddit_users_posts_labels.csv -t Post -l Label -o True
     ````
 
 ### Demo

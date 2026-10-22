@@ -19,6 +19,11 @@ from py.ollama_pred import predecir_clusters
 #Marcos Cobo Gutiérrez, Ibai Buján Urien, Keneth Sebastián Campos
 
 def parse_args():
+    """
+    - Precondición: El archivo CSV de entrada especificado debe existir en el sistema.
+    - Inputs: Argumentos recibidos por la línea de comandos y el archivo opcional clasificador.json.
+    - Outputs: Objeto con los argumentos analizados.
+    """
     parser = argparse.ArgumentParser(description="Clasificación no supervisada K-Means")
     parser.add_argument("-f", "--file", required=True, help="Archivo CSV de entrada")
     parser.add_argument("-o", "--ollama", default=False, help="Aplicar predicción de Ollama sobre los clusters")

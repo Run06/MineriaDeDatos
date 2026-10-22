@@ -7,6 +7,11 @@ import optuna
 import pandas as pd
 
 def parse_args():
+    """
+    - Precondición: Ninguna.
+    - Inputs: Argumentos introducidos por la línea de comandos.
+    - Outputs: Objeto con los argumentos analizados.
+    """
     parser = argparse.ArgumentParser(description="Optimizador de combinaciones del clasificador no supervisado K-Means")
     parser.add_argument("-n", "--num", default=25, type=int, help="Número de combinaciones/iteraciones inteligentes de Optuna")
     parser.add_argument("-m", "--max", default=20, type=int, help="Número máximo de clusters para la prueba")
@@ -17,14 +22,29 @@ def parse_args():
     return args
 
 def cargar_config(ruta="clasificador.json"):
+    """
+    - Precondición: El archivo JSON de configuración debe existir.
+    - Inputs: Ruta del archivo JSON ruta.
+    - Outputs: Diccionario con la configuración cargada.
+    """
     with open(ruta, "r") as f:
         return json.load(f)
 
 def guardar_config(config, ruta="clasificador.json"):
+    """
+    - Precondición: El diccionario de configuración debe ser válido para serializar a JSON.
+    - Inputs: Diccionario config y ruta del archivo ruta.
+    - Outputs: Escribe la configuración en el archivo físico.
+    """
     with open(ruta, "w") as f:
         json.dump(config, f, indent=2)
 
 def cargar_metricas():
+    """
+    - Precondición: El archivo output/metricas_modelos.csv debe existir y contener registros.
+    - Inputs: Ninguno.
+    - Outputs: Un pd.DataFrame con las métricas acumuladas.
+    """
     if not os.path.exists("output/metricas_modelos.csv"):
         print("No se pudo encontrar el archivo output/metricas_modelos.csv")
         sys.exit(-1)
@@ -39,6 +59,11 @@ def cargar_metricas():
         sys.exit(-1)
 
 def objetivo(trial):
+    """
+    - Precondición: Estar ejecutándose dentro de un estudio activo de Optuna.
+    - Inputs: Objeto trial de Optuna.
+    - Outputs: Retorna un valor float correspondiente al Silhouette Score de la prueba o float("-inf") si ocurre un fallo.
+    """
     try:
         args = parse_args()
         t = trial.suggest_categorical("text_process", ["tf-idf", "bow", "embeddings", "doc2vec", "emotion"])

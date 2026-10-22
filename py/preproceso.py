@@ -23,6 +23,11 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Preproceso de los datos
 def preproceso(text_cols, args):
+    """
+    - Precondición: El campo text_process dentro del clasificador.json debe ser uno de los soportados ('tf-idf', 'bow', 'embeddings', 'doc2vec', 'emotion').
+    - Inputs: Columna o serie de textos text_cols y objeto de configuración args.
+    - Outputs: Una matriz de características transformada.
+    """
     cfg = args.preprocessing
     text_process = cfg.get("text_process", "none")
     unidad = cfg.get("unidad", "usuario")
@@ -276,6 +281,11 @@ _STEMMER = SnowballStemmer('english')
 _STOP_WORDS = None
 
 def _stop_words():
+    """
+    - Precondición: Conexión o recursos de NLTK disponibles para descargar stopwords y punkt si es necesario.
+    - Inputs: Ninguno.
+    - Outputs: Un conjunto (set) con las palabras vacías en inglés.
+    """
     global _STOP_WORDS
     if _STOP_WORDS is None:
         nltk.download(['stopwords', 'punkt', 'punkt_tab'], quiet=True)
@@ -285,6 +295,11 @@ def _stop_words():
 
 #Limpiar texto (solo para Aproximaciones dispersas)
 def clean_text(text):
+    """
+    - Precondición: Ninguna.
+    - Inputs: Texto crudo text.
+    - Outputs: String de texto procesado, en minúsculas, sin caracteres especiales, tokenizado y aplicando stemming.
+    """
     stop_words = _stop_words()
     #Texto minúsculas
     text = str(text).lower()
