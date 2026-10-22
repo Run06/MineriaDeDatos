@@ -21,12 +21,12 @@ def evaluar(X_Train, y_train, pkl):
     print(Fore.YELLOW + f"Empleando métodos de evaluación Internos..." + Fore.RESET)
     #Cohesión interna
     cohesion = sum(np.sum(np.asarray(X_Train[labels_pred == i] - centroides[i]) ** 2) for i in range(n_clusters))
-    print(f"Cohesión Interna (Inercia): {cohesion:.4f} (Menor es más coherente cada cluster)")
+    print(f"Cohesión Interna: {cohesion:.4f} (Menor es más coherente cada cluster)")
     #Separabilidad externa
     dist_matrix = euclidean_distances(centroides)
     np.fill_diagonal(dist_matrix, np.inf)  #Ignorar la distancia de un centroide consigo mismo
     separabilidad = np.min(dist_matrix)
-    print(f"Separabilidad Externa (Mín. Dist. Centroides): {separabilidad:.4f} (Mayor es más separado)")
+    print(f"Separabilidad Externa: {separabilidad:.4f} (Mayor es más separado)")
     #Silhouette
     sil_score = silhouette_score(X_Train, labels_pred)
     print(f"Silhouette Score: {sil_score:.4f} (Rango [-1, 1], ideal cercano a 1)")

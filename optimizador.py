@@ -3,14 +3,16 @@ import json
 import os
 import sys
 import subprocess
-
 import optuna
 import pandas as pd
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Obtimizador de combinaciones del clasificador no supervisado K-Means")
+    parser = argparse.ArgumentParser(description="Optimizador de combinaciones del clasificador no supervisado K-Means")
     parser.add_argument("-n", "--num", default=25, type=int, help="Número de combinaciones/iteraciones inteligentes de Optuna")
     parser.add_argument("-m", "--max", default=20, type=int, help="Número máximo de clusters para la prueba")
+    parser.add_argument("-f", "--file", default="500_Reddit_users_posts_labels.csv", help="CSV de entrada")
+    parser.add_argument("-t", "--target", default="Post", help="Columna de texto")
+    parser.add_argument("-l", "--label", default="Label", help="Columna de etiquetas externas")
     args = parser.parse_args()
     return args
 
@@ -37,28 +39,41 @@ def cargar_metricas():
         sys.exit(-1)
 
 def objetivo(trial):
-    t = trial.suggest_categorical("text_process", ["tf-idf", "bow", "embeddings", "doc2vec", "emotion"])
-    d = trial.suggest_categorical("distancia", ["Euclidean", "Cosine","Manhattan"])
-    m = trial.suggest_categorical("modo", ["kmeans", "plusplus"])
-    k = trial.suggest_int("n_clusters", 2, args.max)
-    print(f"Probando: {t} {d} {m} k={k}")
-    conf = cargar_config("clasificador.json")
-    conf["preprocessing"]["text_process"] = t
-    conf["KMeans"]["distancia"] = d
-    conf["KMeans"]["modo"] = m
-    conf["KMeans"]["n_clusters"] = k
-    guardar_config(conf, "clasificador.json")
-    subprocess.run([
-            sys.executable,
-            "main.py",
-            "-f", "500_Reddit_users_posts_labels.csv",
-            "-t", "Post",
-            "-l", "Label",
-        ])
-    df = cargar_metricas()
-    score = float(df["Silhouette_Score"].iloc[-1])
-    return score
+    try:
+        args = parse_args()
+        t = trial.suggest_categorical("text_process", ["tf-idf", "bow", "embeddings", "doc2vec", "emotion"])
+        d = trial.suggest_categorical("distancia", ["Euclidean", "Cosine","Manhattan"])
+        m = trial.suggest_categorical("modo", ["kmeans", "plusplus"])
+        k = trial.suggest_int("n_clusters", 2, args.max)
+        print(f"Probando: {t} {d} {m} k={k}")
+        conf = cargar_config("clasificador.json")
+        conf["preprocessing"]["text_process"] = t
+        conf["KMeans"]["distancia"] = d
+        conf["KMeans"]["modo"] = m
+        conf["KMeans"]["n_clusters"] = k
+        guardar_config(conf, "clasificador.json")
+        resultado = subprocess.run([
+                sys.executable,
+                "main.py",
+                "-f", args.file,
+                "-t", args.target,
+                "-l", args.label,
+            ], capture_output=True, text=True)
 
+        if resultado.returncode != 0:
+            print(f"Error en main.py: {resultado.stderr}")
+            return float("-inf") # Penaliza la prueba si falla la ejecución
+
+        df = cargar_metricas()
+        score = float(df["Silhouette_Score"].iloc[-1])
+        return score
+
+    except Exception as e:
+        print(f"Falló la iteración de Optuna: {e}")
+        return float("-inf")
+
+#Si se imprimen los logs entremezclados con los prints de los índices de las pruebas, es normal, es por como se gestionan los buffers de print y logs en la terminal.
+#No afecta al funcionamiento.
 if __name__ == "__main__":
     args = parse_args()
     study = optuna.create_study(direction="maximize")
