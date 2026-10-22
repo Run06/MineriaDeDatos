@@ -112,7 +112,7 @@ def actualizar_centroides(X,clusters,n_clusters,n_caract,distancia):
     return centroides
 
         #Implementación de clustering sin uso de librerias externas
-def kmeans(X,n_clusters,random_state=42,distancia='Euclidean',modo='kmeans',max_iter=300,tol=1e-4):
+def kmeans(X,n_clusters,vectorizador=None,text_process="none",random_state=42,distancia='Euclidean',modo='kmeans',max_iter=300,tol=1e-4):
     X = validar_parametros(X,n_clusters,distancia)
     n_muestras, n_caracteristicas = X.shape
 
@@ -139,7 +139,9 @@ def kmeans(X,n_clusters,random_state=42,distancia='Euclidean',modo='kmeans',max_
         'cluster_centers_': centroides,
         'n_clusters': n_clusters,
         'modo': modo,
-        'distancia': distancia
+        'distancia': distancia,
+        'vectorizador': vectorizador,
+        'text_process': text_process
     }
 
     file_path = os.path.join('output/', nombre_archivo)

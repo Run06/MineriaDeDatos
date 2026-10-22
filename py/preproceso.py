@@ -22,7 +22,7 @@ MODELO_EMOCIONES = "pysentimiento-emotion-en"   # BERTweet fine-tuned en emocion
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Preproceso de los datos
-def preproceso(text_cols, args):
+def preproceso(text_cols, args,fase="train",vectorizador_entrenado=None,):
     """
     - Precondición: El campo text_process dentro del clasificador.json debe ser uno de los soportados ('tf-idf', 'bow', 'embeddings', 'doc2vec', 'emotion').
     - Inputs: Columna o serie de textos text_cols y objeto de configuración args.
@@ -35,28 +35,35 @@ def preproceso(text_cols, args):
 
     if text_process == "tf-idf":
         textos = text_cols.apply(clean_text)
-        tf_idf_cfg = getattr(args, "tf-idf", {})
-        vec = TfidfVectorizer(max_features=tf_idf_cfg.get("max_features", 5000),           #Limite máximo del vocabulario
-                              ngram_range=tuple(tf_idf_cfg.get("ngram_range", (1, 3))),    #Tamaño de las agrupaciones de palabras (unigrama, bigrama, trigrama,...)
-                              min_df=tf_idf_cfg.get("min_df", 2),                          #Descarta palabras o n-gramas que aparecen en menos de 2 documentos
-                              max_df=tf_idf_cfg.get("max_df", 0.9),                        #Descarta palabras que aparecen en más del 90% de los documentos
-                              sublinear_tf=tf_idf_cfg.get("sublinear_tf", True))           #Escala logarítmica a la frecuencia (Evita que un doc que usa mucho la misma palabra opaque al resto)
-        return vec.fit_transform(textos)
+        if fase == "train":
+            tf_idf_cfg = getattr(args, "tf-idf", {})
+            vec = TfidfVectorizer(max_features=tf_idf_cfg.get("max_features", 5000),           #Limite máximo del vocabulario
+                                  ngram_range=tuple(tf_idf_cfg.get("ngram_range", (1, 3))),    #Tamaño de las agrupaciones de palabras (unigrama, bigrama, trigrama,...)
+                                  min_df=tf_idf_cfg.get("min_df", 2),                          #Descarta palabras o n-gramas que aparecen en menos de 2 documentos
+                                  max_df=tf_idf_cfg.get("max_df", 0.9),                        #Descarta palabras que aparecen en más del 90% de los documentos
+                                  sublinear_tf=tf_idf_cfg.get("sublinear_tf", True))           #Escala logarítmica a la frecuencia (Evita que un doc que usa mucho la misma palabra opaque al resto)
+            return vec.fit_transform(textos), vec
+        else:
+            return vectorizador_entrenado.transform(textos)
 
     elif text_process == "bow":
         textos = text_cols.apply(clean_text)
-        bow_cfg = getattr(args, "bow", {})
-        vec = CountVectorizer(max_features=bow_cfg.get("max_features", 10000),            #Limite máximo del vocabulario
-                              ngram_range=tuple(bow_cfg.get("ngram_range", (1, 2))))      #Tamaño de las agrupaciones de palabras (unigrama, bigrama, trigrama,...)
-        return vec.fit_transform(textos)
+        if fase == "train":
+            bow_cfg = getattr(args, "bow", {})
+            vec = CountVectorizer(max_features=bow_cfg.get("max_features", 10000),            #Limite máximo del vocabulario
+                                  ngram_range=tuple(bow_cfg.get("ngram_range", (1, 2))))      #Tamaño de las agrupaciones de palabras (unigrama, bigrama, trigrama,...)
+            return vec.fit_transform(textos), vec
+        else:
+            return vectorizador_entrenado.transform(textos)
 
     elif text_process == "embeddings":
-        return vectorizar_embeddings(
+        X = vectorizar_embeddings(
             text_cols,
             cache_dir=cfg.get("cache_dir", "cache"),
             chunk_palabras=cfg.get("chunk_palabras", CHUNK_PALABRAS),
             max_chunks=cfg.get("max_chunks", max_chunks_defecto),
         )
+        return (X,None) if fase == "train" else X
 
     elif text_process == "doc2vec":
         return vectorizar_doc2vec(
@@ -68,15 +75,18 @@ def preproceso(text_cols, args):
             dm=cfg.get("dm", 0),
             dbow_words=cfg.get("dbow_words", 0),
             workers=cfg.get("workers", 1),
+            fase=fase,
+            vectorizador_entrenado=vectorizador_entrenado
         )
 
     elif text_process == "emotion":
-        return vectorizar_emociones(
+        X = vectorizar_emociones(
             text_cols,
             cache_dir=cfg.get("cache_dir", "cache"),
             chunk_palabras=cfg.get("chunk_palabras", CHUNK_PALABRAS),
             max_chunks=cfg.get("max_chunks", max_chunks_defecto),
         )
+        return (X,None) if fase == "train" else X
 
     else:
         raise ValueError(f"text_process no soportado: {text_process}")
@@ -181,27 +191,33 @@ def _hash_estable(s):
     return zlib.crc32(s.encode("utf-8") if isinstance(s, str) else s)
 
 def vectorizar_doc2vec(text_cols, vector_size=100, epochs=40, min_count=2,
-                       window=5, dm=0, dbow_words=0, workers=os.cpu_count(), seed=42):
+                       window=5, dm=0, dbow_words=0, workers=os.cpu_count(), seed=42,fase="train",vectorizador_entrenado=None):
     from gensim.models.doc2vec import Doc2Vec, TaggedDocument
     from gensim.utils import simple_preprocess
 
-    # Tokenización ligera: minúsculas y palabras (sin stemming ni stopwords: Doc2Vec las aprovecha)
-    docs = [TaggedDocument(simple_preprocess(str(t), min_len=2, max_len=30), [i])
-            for i, t in enumerate(text_cols)]
-    print(f"Entrenando Doc2Vec ({'PV-DM' if dm else 'PV-DBOW'}) con {len(docs)} documentos...")
+    if fase == "train":
+        # Tokenización ligera: minúsculas y palabras (sin stemming ni stopwords: Doc2Vec las aprovecha)
+        docs = [TaggedDocument(simple_preprocess(str(t), min_len=2, max_len=30), [i])
+                for i, t in enumerate(text_cols)]
+        print(f"Entrenando Doc2Vec ({'PV-DM' if dm else 'PV-DBOW'}) con {len(docs)} documentos...")
 
-    modelo = Doc2Vec(vector_size=vector_size, min_count=min_count, window=window,
-                     dm=dm, dbow_words=0 if dm else dbow_words,   # PV-DBOW: dbow_words=1 entrena también las palabras (~5x más lento, sin mejora apreciable aquí)
-                     epochs=epochs, workers=workers, seed=seed, hashfxn=_hash_estable)
-    modelo.build_vocab(docs)
-    modelo.train(docs, total_examples=modelo.corpus_count, epochs=modelo.epochs)
+        modelo = Doc2Vec(vector_size=vector_size, min_count=min_count, window=window,
+                         dm=dm, dbow_words=0 if dm else dbow_words,   # PV-DBOW: dbow_words=1 entrena también las palabras (~5x más lento, sin mejora apreciable aquí)
+                         epochs=epochs, workers=workers, seed=seed, hashfxn=_hash_estable)
+        modelo.build_vocab(docs)
+        modelo.train(docs, total_examples=modelo.corpus_count, epochs=modelo.epochs)
 
-    X = np.vstack([modelo.dv[i] for i in range(len(docs))])
+        X = np.vstack([modelo.dv[i] for i in range(len(docs))])
+    else:
+        modelo = vectorizador_entrenado
+        X = np.vstack([modelo.infer_vector(simple_preprocess(str(t), min_len=2, max_len=30), epochs=epochs)
+                       for t in text_cols])
+
     normas = np.linalg.norm(X, axis=1, keepdims=True)
     normas[normas == 0] = 1
     X = X / normas
     print(f"Doc2Vec listo: matriz {X.shape} (vocabulario: {len(modelo.wv)} palabras)")
-    return X
+    return (X, modelo) if fase == "train" else X
 
 def parsear_mensajes(crudo):
     """Convierte "['msg1', 'msg2']" en ['msg1', 'msg2'].

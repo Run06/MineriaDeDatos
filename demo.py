@@ -31,12 +31,16 @@ def cargar_entorno(ruta_pkl,ruta_json='clasificador.json'):
         datos_modelo = pickle.load(f)
 
     centroides = datos_modelo['cluster_centers_']
-    distancia_metrica = args.KMeans.get('distancia', 'Euclidean')
+    distancia_metrica = datos_modelo.get('distancia', 'Euclidean')
+    vectorizador_modelo = datos_modelo.get('vectorizador',None)
+    metodo_original = datos_modelo.get('text_process','none')
+    if hasattr(args,'preprocessing'):
+        args.preprocessing['text_process'] = metodo_original
 
-    return args, centroides, distancia_metrica
+    return args, centroides, distancia_metrica, vectorizador_modelo
 
 
-def modo_interactivo(args, centroides, metrica):
+def modo_interactivo(args, centroides, metrica,vectorizador_modelo):
     print(f"{Fore.CYAN}\n=== MODO DEMOSTRACIÓN INTERACTIVO ==={Fore.RESET}")
     print("Escribe un mensaje para evaluarlo. Escribe 'salir' para terminar.\n")
 
@@ -48,7 +52,7 @@ def modo_interactivo(args, centroides, metrica):
             continue
 
         serie_texto = pd.Series([texto])
-        X_nuevo = preproceso(serie_texto, args)
+        X_nuevo = preproceso(serie_texto, args,fase="predict",vectorizador_entrenado=vectorizador_modelo)
 
         # Llamada directa a vuestra nueva función en k_means.py
         cluster_asignado = predict(X_nuevo, centroides, metrica)[0]
@@ -56,7 +60,7 @@ def modo_interactivo(args, centroides, metrica):
         print(f"{Fore.GREEN}  └─> Asignado al Clúster: {cluster_asignado}\n{Fore.RESET}")
 
 
-def modo_csv(ruta_csv, args, centroides, metrica, col_texto):
+def modo_csv(ruta_csv, args, centroides, metrica, col_texto,vectorizador_modelo):
     print(f"{Fore.CYAN}\n=== MODO PREDICCIÓN MASIVA ({ruta_csv}) ==={Fore.RESET}")
     try:
         df = pd.read_csv(ruta_csv)
@@ -70,7 +74,7 @@ def modo_csv(ruta_csv, args, centroides, metrica, col_texto):
 
     print(f"Procesando {len(df)} mensajes nuevos...")
 
-    X_nuevos = preproceso(df[col_texto], args)
+    X_nuevos = preproceso(df[col_texto], args,fase="predict",vectorizador_entrenado=vectorizador_modelo)
 
     # Llamada a vuestra función
     predicciones = predict(X_nuevos, centroides, metrica)
@@ -90,10 +94,10 @@ if __name__ == "__main__":
     sys_args = parser.parse_args()
 
     print("Cargando el cerebro del modelo...")
-    args_modelo, centroides_fijos, metrica = cargar_entorno(sys_args.model)
+    args_modelo, centroides_fijos, metrica,vectorizador_modelo = cargar_entorno(sys_args.model)
     print(f"Modelo cargado: {centroides_fijos.shape[0]} clusters fijados usando distancia {metrica}.")
 
     if sys_args.csv:
-        modo_csv(sys_args.csv, args_modelo, centroides_fijos, metrica, sys_args.texto)
+        modo_csv(sys_args.csv, args_modelo, centroides_fijos, metrica, sys_args.texto,vectorizador_modelo)
     else:
-        modo_interactivo(args_modelo, centroides_fijos, metrica)
+        modo_interactivo(args_modelo, centroides_fijos, metrica,vectorizador_modelo)

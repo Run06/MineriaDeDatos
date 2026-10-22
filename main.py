@@ -158,7 +158,7 @@ if __name__ == "__main__":
     test.to_csv("test.csv", index=False) #Guardar para demo
 
     print(Fore.MAGENTA + f"Preprocesando datos del train..." + Fore.RESET)
-    train_prep = preproceso(train[COL_TEXTO], args)
+    train_prep,vectorizador_modelo = preproceso(train[COL_TEXTO], args)
     print(Fore.GREEN + f"Datos preprocesados!" + Fore.RESET)
     registrar_memoria("Preprocesado")
     print("-"*60)
@@ -167,7 +167,7 @@ if __name__ == "__main__":
 
     #Ejecución K-means
     print(Fore.MAGENTA + f"Ejecutando K-Means..." + Fore.RESET)
-    clusters, centroides, nombre_archivo = kmeans(X_train, **args.KMeans)
+    clusters, centroides, nombre_archivo = kmeans(X_train,vectorizador=vectorizador_modelo,text_process=args.preprocessing.get("text_process"), **args.KMeans)
     nombre_archivo_final = args.preprocessing.get("text_process")+'-'+unidad+'-'+nombre_archivo
     os.makedirs(os.path.join('output', 'modelos'), exist_ok=True)
     ruta_origen = os.path.join('output', nombre_archivo)
