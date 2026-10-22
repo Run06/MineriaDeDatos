@@ -23,6 +23,8 @@ python main.py -f 500_Reddit_users_posts_labels.csv -t Post
 ````
 
 ### Ollama
+Mediante los centroides del modelo generado y las 5 frases más cercanas a cada centroide, por cada cluster concluye una etiqueta que lo resuma y un breve resumen de por qué.
+A veces falla con textos muy explícitos, ya que la Ollama se niega a responder; sin embargo, generalmente adjunta una justificación de porque no puede dar una respuesta.
 1. Descargar Ollama: https://ollama.com/download.
 2. Descarga el modelo desde una terminal:
     ````
@@ -53,4 +55,40 @@ python optimizador --help
 ````
 ````
 python optimizador -n 25 -m 20
+````
+
+## Configuración Hiperparámetros
+### clasificador.json
+````
+{
+  "preprocessing": {
+    "text_process": "emotion",               #Tipo de vectorización ["bow", "tf-idf", "embeddings", "doc2vec", "emotion"].
+    "unidad": "mensaje"                      #Divide los mensajes en nuevas filas si tienen la estructura [msj1],[msj2],...
+  },
+  "bow": {
+    "max_features": 10000,                   #Limite máximo del vocabulario.
+    "ngram_range": [                         #Tamaño de las agrupaciones de palabras (unigrama, bigrama, trigrama,...).
+      1,
+      2
+    ]
+  },
+  "tf-idf": {
+    "max_features": 5000,                    #Limite máximo del vocabulario.
+    "ngram_range": [                         #Tamaño de las agrupaciones de palabras (unigrama, bigrama, trigrama,...).
+      1,
+      3
+    ],
+    "min_df": 2,                             #Descarta palabras o n-gramas que aparecen en menos de 2 documentos.
+    "max_df": 0.9,                           #Descarta palabras o n-gramas que aparecen en más del 90% de los documentos.
+    "sublinear_tf": true                     #Escala logarítmica a la frecuencia (Evita que un doc que usa mucho la misma palabra opaque al resto).
+  },
+  "KMeans": {
+    "n_clusters": 15,                        #Número de grupos en los que el algoritmo intentará dividir todos los mensajes.
+    "random_state": 42,                      #Una semilla matemática para asegurar que si se vuelve a ejecutar, el resultado sea exactamente el mismo.
+    "distancia": "Euclidean",                #Mide la similitud o distancia geométrica entre los puntos usando ["Euclidean", "Cosine","Manhattan"].
+    "modo": "plusplus",                      #Utiliza el método K-Means o K-Means++ ["kmeans", "plusplus"].
+    "max_iter": 300,                         #Número máximo de iteraciones que hará el algoritmo para acomodar los grupos antes de detenerse.
+    "tol": 0.0001                            #Criterio de parada; si en una iteración los grupos casi no cambian, el algoritmo finaliza.
+  }
+}
 ````

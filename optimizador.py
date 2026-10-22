@@ -38,7 +38,7 @@ def cargar_metricas():
 
 def objetivo(trial):
     t = trial.suggest_categorical("text_process", ["tf-idf", "bow", "embeddings", "doc2vec", "emotion"])
-    d = trial.suggest_categorical("distancia", ["Euclidean", "Cosine"])
+    d = trial.suggest_categorical("distancia", ["Euclidean", "Cosine","Manhattan"])
     m = trial.suggest_categorical("modo", ["kmeans", "plusplus"])
     k = trial.suggest_int("n_clusters", 2, args.max)
     print(f"Probando: {t} {d} {m} k={k}")
