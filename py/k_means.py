@@ -17,7 +17,7 @@ def validar_parametros(X, n_clusters,distancia):
         X = X.toarray()
     return X
 
-def inicializar_centroides(X, n_clusters,modo,random_state):
+def inicializar_centroides(X, n_clusters,modo,random_state,distancia):
     np.random.seed(random_state)
     n_muestras = X.shape[0]
 
@@ -30,18 +30,14 @@ def inicializar_centroides(X, n_clusters,modo,random_state):
         idx = np.random.choice(n_muestras)
         primer_c = np.ravel(X[idx].toarray()) if sp.issparse(X) else np.ravel(X[idx])
         centroides.append(primer_c)
-        X_sq_norms = np.ravel(X.power(2).sum(axis=1)) if sp.issparse(X) else np.sum(X ** 2, axis=1)
 
         for _ in range(1, n_clusters):
-            dist_a_centroides = np.zeros((n_muestras, len(centroides)))
-            for j,c in enumerate(centroides):
-                c_sq_norm = np.sum(c ** 2)
-                dot_product = X.dot(c) if sp.issparse(X) else np.dot(X, c)
-                dist_sq = X_sq_norms + c_sq_norm - 2 * dot_product
-                dist_a_centroides[:, j] = np.maximum(dist_sq, 0)  # np.maximum evita decimales negativos
+            dist_a_centroides = calcular_distancias(X, np.array(centroides), distancia)
             distancias_minimas = np.min(dist_a_centroides, axis=1)
-            suma_distancias = np.sum(distancias_minimas)
-            probabilidades = (distancias_minimas / suma_distancias) if suma_distancias > 0 else (np.ones(n_muestras) / n_muestras)
+
+            dist_sq = distancias_minimas ** 2
+            suma_distancias = np.sum(dist_sq)
+            probabilidades = (dist_sq / suma_distancias) if suma_distancias > 0 else (np.ones(n_muestras) / n_muestras)
 
             siguiente_idx = np.random.choice(n_muestras, p=probabilidades)
             nuevo_centroide = np.ravel(X[siguiente_idx].toarray()) if sp.issparse(X) else np.ravel(X[siguiente_idx])
@@ -121,7 +117,7 @@ def kmeans(X,n_clusters,random_state=42,distancia='Euclidean',modo='kmeans',max_
     n_muestras, n_caracteristicas = X.shape
 
     #Inicializar
-    centroides = inicializar_centroides(X,n_clusters,modo,random_state)
+    centroides = inicializar_centroides(X,n_clusters,modo,random_state,distancia)
 
     #Bucle principal
     for iteracion in range(max_iter):
