@@ -12,6 +12,8 @@ Instalar requirements.txt.
 pip install -r requirements.txt
 ````
 
+Datos - Reddit C-SSRS Suicide Dataset: https://zenodo.org/records/2667859
+
 ## Commands
 ### Main
 Dado un csv (-f) y una columna objetivo (-t), ejecuta clasificación NO supervisada (K-Means). Emplea los parámetros del clasficador.json, para tanto el preproceso como el clustering. Asimismo, divide los datos en train test, los datos del test quedan almacenados en un test.csv por si se quiere usar en demo.py.
