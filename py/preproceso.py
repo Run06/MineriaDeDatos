@@ -30,7 +30,7 @@ def preproceso(text_cols, args,fase="train",vectorizador_entrenado=None,):
     """
     cfg = args.preprocessing
     text_process = cfg.get("text_process", "none")
-    unidad = cfg.get("unidad", "usuario")
+    unidad = cfg.get("unidad", "mensaje")
     max_chunks_defecto = MAX_CHUNKS_MENSAJE if unidad == "mensaje" else MAX_CHUNKS
 
     if text_process == "tf-idf":
