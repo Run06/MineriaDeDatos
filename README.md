@@ -33,10 +33,17 @@ A veces falla con textos muy explícitos, ya que la Ollama se niega a responder;
     ollama pull llama3.1
    ````
 3. Asegúrate de que Ollama está ejecutándose en segundo plano.
-4. Ejecutar main con Ollama:
-    ````
-    python main.py -f 500_Reddit_users_posts_labels.csv -t Post -l Label -o True
-    ````
+4. Ejecutar Ollama:
+
+A - Ejecutar main.py
+
+   ````
+   python main.py -f 500_Reddit_users_posts_labels.csv -t Post -l Label -o True
+   ````
+B - Ejecutar optimizador.py
+   ````
+   python optimizador.py -n 100 -m 20 -o True
+   ````
 
 ### Demo
 La demo carga los centroides y el artefacto de preprocesamiento guardado durante el entrenamiento. Después permite asignar una o varias instancias nuevas a los clusters.

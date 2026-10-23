@@ -8,6 +8,7 @@ import pandas as pd
 import time
 import shutil
 
+from py import ollama_pred
 from py.visualizar_instancias import visualizar_tsne
 
 def parse_args():
@@ -22,6 +23,7 @@ def parse_args():
     parser.add_argument("-f", "--file", default="500_Reddit_users_posts_labels.csv", help="CSV de entrada")
     parser.add_argument("-t", "--target", default="Post", help="Columna de texto")
     parser.add_argument("-l", "--label", default="Label", help="Columna de etiquetas externas")
+    parser.add_argument("-o", "--ollama", default=False, help="Aplicar predicción de Ollama sobre los clusters del mejor modelo")
     args = parser.parse_args()
     return args
 
@@ -138,3 +140,13 @@ if __name__ == "__main__":
     print(f"Archivos del mejor modelo guardados en: {carpeta_mejor}")
     print("-"* 60)
     visualizar_tsne(args.file)
+    #Ejecutar Ollama
+    if args.ollama:
+        subprocess.run([
+            sys.executable,
+            "main.py",
+            "-f", args.file,
+            "-t", args.target,
+            "-l", args.label,
+            "-o", "True",
+        ])
