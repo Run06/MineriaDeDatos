@@ -8,6 +8,8 @@ import pandas as pd
 import time
 import shutil
 
+from py.visualizar_instancias import visualizar_tsne
+
 def parse_args():
     """
     - Precondición: Ninguna.
@@ -134,3 +136,6 @@ if __name__ == "__main__":
         shutil.copy2(ruta_memoria, carpeta_mejor)
     if os.path.exists(ruta_tiempo):
         shutil.copy2(ruta_tiempo, carpeta_mejor)
+    print(f"Archivos del mejor modelo guardados en: {carpeta_mejor}")
+    print("-"* 60)
+    visualizar_tsne()
