@@ -14,9 +14,13 @@ from colorama import Fore
 from py.preproceso import preproceso, preparar_instancias, COL_TEXTO
 from py.k_means import predict
 
-class ArgsWrapper:
-    pass
-def visualizar_tsne():
+def parse_args():
+    parser = argparse.ArgumentParser(description="Generar t-SNE del mejor modelo")
+    parser.add_argument("-f", "--file", default="500_Reddit_users_posts_labels.csv", help="CSV de entrada")
+    args = parser.parse_args()
+    return args
+
+def visualizar_tsne(archivo_csv="500_Reddit_users_posts_labels.csv"):
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     carpeta_mejor = os.path.join(root_dir,"output", "mejor_modelo")
     archivos_pkl = glob.glob(os.path.join(carpeta_mejor, "*.pkl"))
@@ -28,6 +32,8 @@ def visualizar_tsne():
     ruta_pkl = archivos_pkl[0]
     print(f"{Fore.CYAN}Cargando el mejor modelo: {os.path.basename(ruta_pkl)}{Fore.RESET}")
 
+    class ArgsWrapper:
+        pass
     args = ArgsWrapper()
     ruta_json = os.path.join(root_dir, "clasificador.json")
     with open(ruta_json, "r") as f:
@@ -47,7 +53,7 @@ def visualizar_tsne():
     centroides = datos_modelo['cluster_centers_']
     vectorizador = datos_modelo.get('vectorizador', None)
     metrica = datos_modelo.get('distancia', 'Euclidean')
-    ruta_csv = os.path.join(root_dir, "500_Reddit_users_posts_labels.csv")
+    ruta_csv = os.path.join(root_dir, archivo_csv)
     df = pd.read_csv(ruta_csv)
     df_prep = preparar_instancias(df, args)
     print(f"Vectorizando {len(df_prep)} instancias con {metodo_original}...")
@@ -87,7 +93,9 @@ def visualizar_tsne():
     ax2.set_xlabel('Dimensión 1 t-SNE')
     ax2.grid(True, linestyle=':', alpha=0.5)
 
-    legend2 = ax2.legend(*scatter2.legend_elements(num=len(np.unique(clusters_predichos))), title="Clústeres",loc='best')
+    handles, _ = scatter2.legend_elements(num=len(np.unique(clusters_predichos)))
+    etiquetas_clusters = [str(c) for c in np.unique(clusters_predichos)]
+    legend2 = ax2.legend(handles, etiquetas_clusters, title="Clústeres", loc='best')
     ax2.add_artist(legend2)
 
     # Estética general
@@ -100,4 +108,5 @@ def visualizar_tsne():
 
 
 if __name__ == "__main__":
-    visualizar_tsne()
+    args = parse_args()
+    visualizar_tsne(args.file)
