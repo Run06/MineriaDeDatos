@@ -29,7 +29,7 @@ python main.py -f 500_Reddit_users_posts_labels.csv -t Post -l Label
 ### Optimizador
 Realiza una serie de pruebas (-n) mediante Optuna con distintas combinaciones de parámetros del clasificador. Busca optimizar, el silhouette. Dando como mejor modelo el que obtenga un silhouette máx próximo a uno. Por último, grafica los datos del mejor modelo mediante tSNE.
 
-Guarda todo en la carpeta output/mejor_modelo
+Guarda todo en la carpeta output/mejor_modelo.
 ````
 python optimizador.py --help
 ````
@@ -68,11 +68,11 @@ python demo.py --help
 ````
 Modo interactivo (Prueba un único mensaje que introduces):
 ````
-python demo.py -i True -m "output/modelos/emotion-mensaje-plusplus-Euclidean-15.pkl" -r train.csv -t Mensaje
+python demo.py -i True -m "output/modelos/emotion-mensaje-plusplus-Manhattan-5.pkl" -r train.csv -t Mensaje
 ````
 Predicción masiva desde un CSV que tenga una columna Mensaje:
 ````
-python demo.py -m "output/modelos/emotion-mensaje-plusplus-Euclidean-15.pkl" -c test.csv -t Mensaje -r train.csv
+python demo.py -m "output/modelos/emotion-mensaje-plusplus-Manhattan-5.pkl" -c test.csv -t Mensaje -r train.csv
 ````
 
 ## Configuración Hiperparámetros
