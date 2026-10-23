@@ -17,7 +17,7 @@ def parse_args():
     - Outputs: Objeto con los argumentos analizados.
     """
     parser = argparse.ArgumentParser(description="Optimizador de combinaciones del clasificador no supervisado K-Means")
-    parser.add_argument("-n", "--num", default=25, type=int, help="Número de combinaciones/iteraciones inteligentes de Optuna")
+    parser.add_argument("-n", "--num", default=100, type=int, help="Número de combinaciones/iteraciones inteligentes de Optuna")
     parser.add_argument("-m", "--max", default=20, type=int, help="Número máximo de clusters para la prueba")
     parser.add_argument("-f", "--file", default="500_Reddit_users_posts_labels.csv", help="CSV de entrada")
     parser.add_argument("-t", "--target", default="Post", help="Columna de texto")
@@ -38,7 +38,7 @@ def guardar_config(config, ruta="clasificador.json"):
     """
     - Precondición: El diccionario de configuración debe ser válido para serializar a JSON.
     - Inputs: Diccionario config y ruta del archivo ruta.
-    - Outputs: Escribe la configuración en el archivo físico.
+    - Outputs: Ninguno (actualiza el archivo físico de configuración).
     """
     with open(ruta, "w") as f:
         json.dump(config, f, indent=2)
@@ -102,10 +102,10 @@ def objetivo(trial):
         return float("-inf")
 
 #Si se imprimen los logs entremezclados con los prints de los índices de las pruebas, es normal, es por como se gestionan los buffers de print y logs en la terminal.
-#No afecta al funcionamiento.
+#No afecta al funcionamiento. Ejecutar por línea de comandos para ver mejor.
 if __name__ == "__main__":
     args = parse_args()
-    study = optuna.create_study(direction="maximize")
+    study = optuna.create_study(study_name="optimización_kmeans",direction="maximize")
     N_TRIALS = args.num #cuántas combinaciones/iteraciones inteligentes (Default 25)
     tiempo_inicio_opt = time.time()
     print("Ejecutando estudio Bayesiano con Optuna...")

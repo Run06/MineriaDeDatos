@@ -3,7 +3,6 @@ import os
 import json
 import sys
 import time
-
 import numpy as np
 import pandas as pd
 from colorama import Fore
@@ -51,7 +50,7 @@ def registrar_tiempo(fase):
     if tiempo_anterior is not None:
         duracion = ahora - tiempo_anterior
         historial_tiempo.append({'fase':fase, 'duracion':duracion})
-        print(f"  └─ Tiempo {fase}: {duracion:.2f} s")
+        print(f"  |-- Tiempo {fase}: {duracion:.2f} s")
     tiempo_anterior = ahora
 
 
@@ -107,8 +106,8 @@ def registrar_memoria(fase):
 
     # Imprimir por consola
     print(Fore.CYAN + f"[{fase}]" + Fore.RESET)
-    print(f"  ├─ RAM Python:  Actual {mem_proceso_mb:.2f} MB | Pico: {pico_python:.2f} MB")
-    print(f"  └─ RAM Sistema: Actual {mem_sistema_gb:.2f} GB | Pico: {pico_sistema:.2f} GB\n")
+    print(f"  |-- RAM Python:  Actual {mem_proceso_mb:.2f} MB | Pico: {pico_python:.2f} MB")
+    print(f"  |-- RAM Sistema: Actual {mem_sistema_gb:.2f} GB | Pico: {pico_sistema:.2f} GB\n")
 
 def graficar_memoria(nombre_modelo="grafico_memoria"):
     if not historial_memoria:
@@ -203,6 +202,7 @@ if __name__ == "__main__":
     train = preparar_instancias(train, args)
     test = preparar_instancias(test, args)
     print(f"Unidad de análisis: {unidad} -> {len(train)} instancias en train, {len(test)} en test")
+    train.to_csv("train.csv", index=False) #Guardar para demo
     test.to_csv("test.csv", index=False) #Guardar para demo
 
     print(Fore.MAGENTA + f"Preprocesando datos del train..." + Fore.RESET)

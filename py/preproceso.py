@@ -25,8 +25,8 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 def preproceso(text_cols, args,fase="train",vectorizador_entrenado=None,):
     """
     - Precondición: El campo text_process dentro del clasificador.json debe ser uno de los soportados ('tf-idf', 'bow', 'embeddings', 'doc2vec', 'emotion').
-    - Inputs: Columna o serie de textos text_cols y objeto de configuración args.
-    - Outputs: Una matriz de características transformada.
+    - Inputs: Columna o serie de textos text_cols, objeto de configuración args, fase de ejecución y vectorizador entrenado.
+    - Outputs: Una matriz de características transformada (y opcionalmente el vectorizador ajustado si la fase es 'train').
     """
     cfg = args.preprocessing
     text_process = cfg.get("text_process", "none")
