@@ -45,6 +45,12 @@ historial_tiempo = []
 tiempo_anterior=None
 
 def registrar_tiempo(fase):
+    """
+        - Precondición: La variable global `tiempo_anterior` y la lista `historial_tiempo` deben estar inicializadas previamente.
+        - Inputs: `fase` (str) indicando el nombre del bloque de código o proceso actual.
+        - Outputs: Ninguno.
+        - Postcondición: Se añade un diccionario con la fase y su duración a `historial_tiempo`. Se actualiza `tiempo_anterior` con el timestamp actual y se imprime la duración por consola.
+    """
     global tiempo_anterior
     ahora = time.time()
     if tiempo_anterior is not None:
@@ -55,6 +61,12 @@ def registrar_tiempo(fase):
 
 
 def graficar_tiempo(nombre_modelo="grafico_tiempo"):
+    """
+        - Precondición: La lista global `historial_tiempo` debe existir. El entorno debe tener permisos de escritura en la carpeta 'output/tiemposEjecucion'.
+        - Inputs: `nombre_modelo` (str) con el nombre base para el archivo guardado (opcional).
+        - Outputs: Ninguno.
+        - Postcondición: Si el historial no está vacío, genera y guarda un gráfico de barras (.png) con los tiempos de ejecución. No muta el historial original.
+    """
     if not historial_tiempo:
         return
     fases = [h['fase'] for h in historial_tiempo]
@@ -86,6 +98,12 @@ def graficar_tiempo(nombre_modelo="grafico_tiempo"):
     print(Fore.GREEN + f"Gráfico de tiempos guardado en '{ruta_grafico}'" + Fore.RESET)
 
 def registrar_memoria(fase):
+    """
+            - Precondición: La lista global `historial_memoria` debe estar inicializada. `psutil` y `os` deben estar importados.
+            - Inputs: `fase` (str) indicando el nombre del proceso actual.
+            - Outputs: Ninguno.
+            - Postcondición: Se añade un diccionario a `historial_memoria` con la RAM actual del script (MB) y del sistema (GB). Se imprimen los valores actuales y los picos históricos.
+    """
     #Obtener memoria actual
     proceso = psutil.Process(os.getpid())
     mem_proceso_mb = proceso.memory_info().rss / (1024 * 1024)
@@ -110,6 +128,12 @@ def registrar_memoria(fase):
     print(f"  |-- RAM Sistema: Actual {mem_sistema_gb:.2f} GB | Pico: {pico_sistema:.2f} GB\n")
 
 def graficar_memoria(nombre_modelo="grafico_memoria"):
+    """
+        - Precondición: La lista `historial_memoria` debe existir. El entorno debe tener permisos de escritura en 'output/usoDeMemoria'.
+        - Inputs: `nombre_modelo` (str) con el nombre base para el archivo (opcional).
+        - Outputs: Ninguno.
+        - Postcondición: Genera y guarda un gráfico de líneas de doble eje (.png) cruzando el consumo de RAM de Python (MB) vs Sistema (GB) por fase, sin alterar los datos originales.
+    """
     if not historial_memoria:
         return
 

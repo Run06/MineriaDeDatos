@@ -15,12 +15,24 @@ from py.preproceso import preproceso, preparar_instancias, COL_TEXTO
 from py.k_means import predict
 
 def parse_args():
+    """
+        - Precondición: Ninguna.
+        - Inputs: Argumentos introducidos por la línea de comandos al ejecutar el script directamente.
+        - Outputs: Objeto con los argumentos analizados.
+        - Postcondición: Define y extrae el parámetro `-f` / `--file` permitiendo inyectar dinámicamente el nombre del archivo CSV.
+    """
     parser = argparse.ArgumentParser(description="Generar t-SNE del mejor modelo")
     parser.add_argument("-f", "--file", default="500_Reddit_users_posts_labels.csv", help="CSV de entrada")
     args = parser.parse_args()
     return args
 
 def visualizar_tsne(archivo_csv="500_Reddit_users_posts_labels.csv"):
+    """
+        - Precondición: Debe existir un archivo modelo (.pkl) válido en el directorio 'output/mejor_modelo/'. Los archivos 'clasificador.json' y el CSV objetivo deben estar accesibles en la raíz del proyecto.
+        - Inputs: archivo_csv (str) indicando el nombre del archivo de datos a procesar y evaluar.
+        - Outputs: Ninguno.
+        - Postcondición: Reconstruye el entorno del mejor modelo, vectoriza el texto congelando los parámetros de entrenamiento (fase='predict'), agrupa los datos e invoca t-SNE para la reducción dimensional a 2D. Guarda físicamente un panel comparativo (.png) mostrando las etiquetas originales frente a los clústeres descubiertos.
+    """
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     carpeta_mejor = os.path.join(root_dir,"output", "mejor_modelo")
     archivos_pkl = glob.glob(os.path.join(carpeta_mejor, "*.pkl"))
