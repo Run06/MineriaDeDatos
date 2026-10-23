@@ -6,6 +6,7 @@ import subprocess
 import optuna
 import pandas as pd
 import time
+import shutil
 
 def parse_args():
     """
@@ -119,3 +120,17 @@ if __name__ == "__main__":
     modelo = primero["ArchivoPKL"]
     score = primero["Silhouette_Score"]
     print(f"Mejor modelo {modelo} según Silhouette {score:.4f}")
+
+    #Guardar el mejor modelo en una carpeta independiente
+    carpeta_mejor = os.path.join("output", "mejor_modelo")
+    os.makedirs(carpeta_mejor, exist_ok=True)
+    nombre_base = modelo.replace(".pkl","")
+    ruta_modelo = os.path.join("output","modelos", modelo)
+    ruta_memoria = os.path.join("output","usoDeMemoria", f"{nombre_base}.png")
+    ruta_tiempo = os.path.join("output","tiemposEjecucion", f"{nombre_base}_tiempo.png")
+    if os.path.exists(ruta_modelo):
+        shutil.copy2(ruta_modelo, carpeta_mejor)
+    if os.path.exists(ruta_memoria):
+        shutil.copy2(ruta_memoria, carpeta_mejor)
+    if os.path.exists(ruta_tiempo):
+        shutil.copy2(ruta_tiempo, carpeta_mejor)
