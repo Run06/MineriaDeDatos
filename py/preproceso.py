@@ -95,6 +95,12 @@ def preproceso(text_cols, args,fase="train",vectorizador_entrenado=None,):
 # trocear -> codificar -> promediar los trozos de cada instancia -> (normalizar) -> caché
 def _vectorizar_por_trozos(textos, firma, prefijo, cache_dir, chunk_palabras, max_chunks,
                            codificar, normalizar=True):
+    """
+    - Precondición: textos es una lista de strings; codificar es una función que recibe una lista de trozos y devuelve una matriz con una fila por trozo; chunk_palabras > 0; cache_dir es una ruta creable o con permisos de escritura.
+    - Postcondición: Se crea el directorio cache_dir si no existía y se guarda en él un fichero .npy con la matriz resultante (si ya existía una caché con el mismo hash, no se recalcula nada y no se escribe nada).
+    - Inputs: Lista de textos, firma que identifica la configuración (modelo, trozos, etc.) para el hash de la caché, prefijo del nombre del fichero de caché, directorio de caché, palabras por trozo, máximo de trozos por texto, función codificar y booleano normalizar (normalización L2).
+    - Outputs: Matriz numpy de forma (len(textos), dimensión del embedding) con un vector por texto, obtenido promediando sus trozos (y normalizado si normalizar=True). Si se carga de caché, se devuelve como memmap de solo lectura.
+    """
     hash_datos = hashlib.md5((firma + "\x1f".join(textos)).encode("utf-8")).hexdigest()[:12]
 
     os.makedirs(cache_dir, exist_ok=True)
@@ -125,6 +131,12 @@ def _vectorizar_por_trozos(textos, firma, prefijo, cache_dir, chunk_palabras, ma
 # Embeddings contextuales (sentence-transformers) con caché
 def vectorizar_embeddings(text_cols, cache_dir="cache",
                           chunk_palabras=CHUNK_PALABRAS, max_chunks=MAX_CHUNKS):
+    """
+    - Precondición: La librería sentence-transformers está instalada y el modelo MODELO_EMBEDDINGS está disponible (local o descargable); text_cols es iterable de textos.
+    - Postcondición: Los vectores quedan guardados en caché (prefijo "vectores") dentro de cache_dir, de modo que ejecuciones posteriores con los mismos textos y parámetros los reutilizan.
+    - Inputs: Columna o serie de textos text_cols, directorio de caché, palabras por trozo y máximo de trozos por texto.
+    - Outputs: Matriz numpy de forma (n_textos, dimensión del modelo) con un embedding normalizado (L2) por texto.
+    """
     textos = [str(t) for t in text_cols]   # un mensaje por elemento
     # La firma NO ha cambiado: las cachés de embeddings que ya tengas se siguen reutilizando
     firma = f"{MODELO_EMBEDDINGS}|msg|{chunk_palabras}|{max_chunks}||"
@@ -144,6 +156,12 @@ def vectorizar_embeddings(text_cols, cache_dir="cache",
 # (orden alfabético: anger, disgust, fear, joy, others, sadness, surprise)
 def vectorizar_emociones(text_cols, cache_dir="cache",
                          chunk_palabras=CHUNK_PALABRAS, max_chunks=MAX_CHUNKS):
+    """
+    - Precondición: La librería pysentimiento está instalada y el analizador de emociones en inglés está disponible (local o descargable); text_cols es iterable de textos (en inglés).
+    - Postcondición: Los vectores quedan guardados en caché (prefijo "emociones") dentro de cache_dir, de modo que ejecuciones posteriores con los mismos textos y parámetros los reutilizan.
+    - Inputs: Columna o serie de textos text_cols, directorio de caché, palabras por trozo y máximo de trozos por texto.
+    - Outputs: Matriz numpy de forma (n_textos, 7) con la probabilidad media de cada emoción (anger, disgust, fear, joy, others, sadness, surprise) por texto, sin normalización L2.
+    """
     textos = [str(t) for t in text_cols]
     firma = f"{MODELO_EMOCIONES}|emo|{chunk_palabras}|{max_chunks}||"
 
@@ -187,11 +205,23 @@ def vectorizar_emociones(text_cols, cache_dir="cache",
 
 # Doc2Vec (gensim): se ENTRENA con los propios textos (no hay modelo preentrenado)
 def _hash_estable(s):
+    """
+    - Precondición: s es un str o un objeto de tipo bytes.
+    - Postcondición: Ninguna (función pura, sin efectos secundarios). Para la misma entrada devuelve siempre el mismo valor entre ejecuciones.
+    - Inputs: Cadena de texto (o bytes) s a la que aplicar el hash.
+    - Outputs: Entero sin signo de 32 bits (CRC32) correspondiente a s. Se usa como hashfxn de Doc2Vec para que el entrenamiento sea reproducible.
+    """
     # El hash por defecto de Python cambia en cada ejecución; con este el entrenamiento es reproducible
     return zlib.crc32(s.encode("utf-8") if isinstance(s, str) else s)
 
 def vectorizar_doc2vec(text_cols, vector_size=100, epochs=40, min_count=2,
                        window=5, dm=0, dbow_words=0, workers=os.cpu_count(), seed=42,fase="train",vectorizador_entrenado=None):
+    """
+    - Precondición: La librería gensim está instalada; fase es "train" o cualquier otro valor para inferencia; si fase != "train", vectorizador_entrenado debe ser un modelo Doc2Vec ya entrenado.
+    - Postcondición: En fase "train" se entrena un nuevo modelo Doc2Vec con los textos recibidos (no se guarda en disco); en las demás fases el modelo recibido no se modifica.
+    - Inputs: Columna o serie de textos text_cols, hiperparámetros de Doc2Vec (vector_size, epochs, min_count, window, dm, dbow_words, workers, seed), fase de ejecución y modelo Doc2Vec entrenado (solo fuera de 'train').
+    - Outputs: Matriz numpy de forma (n_textos, vector_size) con un vector normalizado (L2) por texto. Si la fase es 'train' devuelve la tupla (matriz, modelo entrenado); en otro caso devuelve solo la matriz.
+    """
     from gensim.models.doc2vec import Doc2Vec, TaggedDocument
     from gensim.utils import simple_preprocess
 
@@ -222,7 +252,12 @@ def vectorizar_doc2vec(text_cols, vector_size=100, epochs=40, min_count=2,
 def parsear_mensajes(crudo):
     """Convierte "['msg1', 'msg2']" en ['msg1', 'msg2'].
     Si la lista está truncada (cadena sin cerrar), recupera los mensajes
-    separando por los delimitadores ', ' entre comillas."""
+    separando por los delimitadores ', ' entre comillas.
+    - Precondición: crudo es un string con la representación de una lista de mensajes (posiblemente truncada) o un objeto convertible a string.
+    - Postcondición: Ninguna (función pura, no modifica la entrada).
+    - Inputs: Cadena cruda crudo con la lista de mensajes de un usuario.
+    - Outputs: Lista de strings, un elemento por mensaje.
+    """
     try:
         lista = ast.literal_eval(crudo)
         if isinstance(lista, (list, tuple)):
@@ -237,7 +272,12 @@ def parsear_mensajes(crudo):
 def explotar_mensajes(df, col_post="Post", col_user="User",
                       col_label="Label", min_palabras=1):
     """De una fila por usuario a una fila por mensaje.
-    Cada mensaje hereda el usuario y la etiqueta de su autor."""
+    Cada mensaje hereda el usuario y la etiqueta de su autor.
+    - Precondición: df contiene las columnas col_post, col_user y col_label, y cada valor de col_post es parseable por parsear_mensajes.
+    - Postcondición: df no se modifica; se descartan los mensajes con menos de min_palabras palabras.
+    - Inputs: DataFrame df (una fila por usuario), nombres de las columnas de posts, usuario y etiqueta, y número mínimo de palabras por mensaje.
+    - Outputs: DataFrame con columnas [col_user, col_label, COL_TEXTO] y una fila por mensaje.
+    """
     filas = []
     for user, post, label in zip(df[col_user], df[col_post], df[col_label]):
         for m in parsear_mensajes(post):
@@ -248,7 +288,12 @@ def explotar_mensajes(df, col_post="Post", col_user="User",
 
 
 def unir_mensajes(crudo):
-    """Convierte "['msg1', 'msg2']" en 'msg1 msg2' (un único texto por usuario)."""
+    """Convierte "['msg1', 'msg2']" en 'msg1 msg2' (un único texto por usuario).
+    - Precondición: crudo es un string con la representación de una lista de mensajes, parseable por parsear_mensajes.
+    - Postcondición: Ninguna (función pura, no modifica la entrada).
+    - Inputs: Cadena cruda crudo con la lista de mensajes de un usuario.
+    - Outputs: String único con todos los mensajes (sin espacios en los extremos) concatenados y separados por un espacio.
+    """
     return " ".join(m.strip() for m in parsear_mensajes(crudo))
 
 
@@ -257,7 +302,12 @@ def preparar_instancias(df, args):
     según args.preprocessing["unidad"]:
       - "usuario": una fila por usuario, con todos sus mensajes unidos en un texto.
       - "mensaje": una fila por mensaje; cada mensaje hereda User y Label de su autor.
-    Siempre devuelve columnas [col_user, col_label, COL_TEXTO] y NO modifica df."""
+    Siempre devuelve columnas [col_user, col_label, COL_TEXTO] y NO modifica df.
+    - Precondición: args.preprocessing["unidad"] es una de UNIDADES; df contiene las columnas indicadas por args.target (posts) y args.label (etiqueta); la columna de usuario es opcional (si no existe se usa el índice).
+    - Postcondición: df original no se modifica.
+    - Inputs: DataFrame df (una fila por usuario) y objeto de configuración args.
+    - Outputs: DataFrame con columnas [col_user, col_label, COL_TEXTO], con una fila por usuario o por mensaje según la unidad configurada.
+    """
     cfg = args.preprocessing
     unidad = cfg.get("unidad", "usuario")
     col_user = cfg.get("col_user", "User")
@@ -280,7 +330,12 @@ def preparar_instancias(df, args):
 def trocear(texto, chunk_palabras, max_chunks):
     """Divide un texto en trozos de `chunk_palabras` palabras.
     Si hay más de `max_chunks`, se queda con trozos repartidos uniformemente
-    a lo largo del texto (no solo los primeros)."""
+    a lo largo del texto (no solo los primeros).
+    - Precondición: texto es un string; chunk_palabras es un entero > 0; max_chunks es un entero positivo o None/0 para no limitar.
+    - Postcondición: Ninguna (función pura, no modifica la entrada). La lista devuelta nunca está vacía.
+    - Inputs: Texto a trocear, número de palabras por trozo y número máximo de trozos.
+    - Outputs: Lista de strings con los trozos (como mucho max_chunks si se indicó). Si el texto no tiene palabras devuelve [""].
+    """
     palabras = texto.split()
     if not palabras:
         return [""]
