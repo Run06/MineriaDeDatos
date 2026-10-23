@@ -1,7 +1,7 @@
 # MineriaDeDatos
 Proyecto grupal para la asignatura de Minería de Datos del grado en Ingeniería Informática de Gestión y Sistemas de Información en la EHU.
 
-CLASIFICADOR NO SUPERVISADO: K-Means
+CLASIFICADOR NO SUPERVISADO: K-Means (creado desde cero)
 
 Marcos Cobo Gutiérrez, Ibai Buján Urien, Keneth Sebastián Campos
 
