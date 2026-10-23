@@ -62,18 +62,17 @@ def cargar_metricas():
         print(f"Error leyendo el CSV de métricas: {e}")
         sys.exit(-1)
 
-def objetivo(trial):
+def objetivo(trial, args_globales):
     """
     - Precondición: Estar ejecutándose dentro de un estudio activo de Optuna.
     - Inputs: Objeto trial de Optuna.
     - Outputs: Retorna un valor float correspondiente al Silhouette Score de la prueba o float("-inf") si ocurre un fallo.
     """
     try:
-        args = parse_args()
         t = trial.suggest_categorical("text_process", ["tf-idf", "bow", "embeddings", "doc2vec", "emotion"])
         d = trial.suggest_categorical("distancia", ["Euclidean", "Cosine","Manhattan"])
         m = trial.suggest_categorical("modo", ["kmeans", "plusplus"])
-        k = trial.suggest_int("n_clusters", 2, args.max)
+        k = trial.suggest_int("n_clusters", 2, args_globales.max)
         print(f"Probando: {t} {d} {m} k={k}")
         conf = cargar_config("clasificador.json")
         conf["preprocessing"]["text_process"] = t
@@ -84,9 +83,9 @@ def objetivo(trial):
         resultado = subprocess.run([
                 sys.executable,
                 "main.py",
-                "-f", args.file,
-                "-t", args.target,
-                "-l", args.label,
+                "-f", args_globales.file,
+                "-t", args_globales.target,
+                "-l", args_globales.label,
             ], capture_output=True, text=True)
 
         if resultado.returncode != 0:
@@ -109,7 +108,7 @@ if __name__ == "__main__":
     N_TRIALS = args.num #cuántas combinaciones/iteraciones inteligentes (Default 25)
     tiempo_inicio_opt = time.time()
     print("Ejecutando estudio Bayesiano con Optuna...")
-    study.optimize(objetivo, n_trials=N_TRIALS)
+    study.optimize(lambda trial: objetivo(trial, args), n_trials=N_TRIALS)
     tiempo_fin_opt = time.time()
     duracion_opt = tiempo_fin_opt - tiempo_inicio_opt
     minutos = int(duracion_opt//60)

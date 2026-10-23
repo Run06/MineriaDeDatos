@@ -40,6 +40,7 @@ A veces falla con textos muy explícitos, ya que la Ollama se niega a responder;
 
 ### Demo
 La demo carga los centroides y el artefacto de preprocesamiento guardado durante el entrenamiento. Después permite asignar una o varias instancias nuevas a los clusters.
+Asimismo imprime las 5 palabras del dataset original (train.csv) más cercanas a cada centroide.
 
 Precondición: debe haberse ejecutado main.py antes y tener, un modelo entrenado, train.csv, test.csv.
 ````
