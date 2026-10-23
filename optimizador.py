@@ -5,6 +5,7 @@ import sys
 import subprocess
 import optuna
 import pandas as pd
+import time
 
 def parse_args():
     """
@@ -103,9 +104,15 @@ if __name__ == "__main__":
     args = parse_args()
     study = optuna.create_study(direction="maximize")
     N_TRIALS = args.num #cuántas combinaciones/iteraciones inteligentes (Default 25)
+    tiempo_inicio_opt = time.time()
     print("Ejecutando estudio Bayesiano con Optuna...")
     study.optimize(objetivo, n_trials=N_TRIALS)
+    tiempo_fin_opt = time.time()
+    duracion_opt = tiempo_fin_opt - tiempo_inicio_opt
+    minutos = int(duracion_opt//60)
+    segundos = int(duracion_opt%60)
     print("-"*60)
+    print(f"Tiempo total optimización: {minutos} min {segundos} s")
     df = cargar_metricas()
     df_sorted = df.sort_values(by="Silhouette_Score", ascending=False)
     primero = df_sorted.iloc[0]

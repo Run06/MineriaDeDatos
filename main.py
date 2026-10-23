@@ -2,6 +2,8 @@ import argparse
 import os
 import json
 import sys
+import time
+
 import numpy as np
 import pandas as pd
 from colorama import Fore
@@ -40,6 +42,49 @@ def parse_args():
     return args
 #Lista global
 historial_memoria = []
+historial_tiempo = []
+tiempo_anterior=None
+
+def registrar_tiempo(fase):
+    global tiempo_anterior
+    ahora = time.time()
+    if tiempo_anterior is not None:
+        duracion = ahora - tiempo_anterior
+        historial_tiempo.append({'fase':fase, 'duracion':duracion})
+        print(f"  └─ Tiempo {fase}: {duracion:.2f} s")
+    tiempo_anterior = ahora
+
+
+def graficar_tiempo(nombre_modelo="grafico_tiempo"):
+    if not historial_tiempo:
+        return
+    fases = [h['fase'] for h in historial_tiempo]
+    duraciones = [h['duracion'] for h in historial_tiempo]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.bar(fases, duraciones, color='tab:orange', edgecolor='black', alpha=0.8)
+
+    ax.set_title('Tiempo de Ejecución por Fase', fontsize=14, pad=15, fontweight='bold')
+    ax.set_ylabel('Segundos', fontweight='bold')
+    ax.set_xlabel('Fases del Proceso', fontweight='bold')
+
+    ax.set_xticks(range(len(fases)))
+    ax.set_xticklabels(fases, rotation=45, ha="right")
+
+    # Añadir los segundos exactos encima de cada barra
+    max_duracion = max(duraciones) if duraciones else 1
+    for i, v in enumerate(duraciones):
+        ax.text(i, v + (max_duracion * 0.02), f"{v:.2f}s", ha='center', va='bottom', fontsize=10, fontweight='bold')
+
+    fig.tight_layout()
+    plt.grid(axis='y', linestyle=':', alpha=0.6)
+
+    # Guardar en una nueva subcarpeta
+    nombre_limpio = nombre_modelo.replace('.pkl', '')
+    ruta_grafico = os.path.join('output', 'tiemposEjecucion', f"{nombre_limpio}_tiempo.png")
+    os.makedirs(os.path.dirname(ruta_grafico), exist_ok=True)
+    plt.savefig(ruta_grafico, dpi=300)
+    print(Fore.GREEN + f"Gráfico de tiempos guardado en '{ruta_grafico}'" + Fore.RESET)
 
 def registrar_memoria(fase):
     #Obtener memoria actual
@@ -133,6 +178,8 @@ def graficar_memoria(nombre_modelo="grafico_memoria"):
 
 if __name__ == "__main__":
     args = parse_args()
+    tiempo_inicio_total = time.time()
+    tiempo_anterior = time.time()
     registrar_memoria("Inicio del programa")
     #Cargar csv
     try:
@@ -148,6 +195,7 @@ if __name__ == "__main__":
     train, test = raw_data[raw_data['is_train'] == True], raw_data[raw_data['is_train'] == False]
 
     registrar_memoria("Carga CSV")
+    registrar_tiempo("Carga CSV")
 
     #Unidad de análisis: "usuario" (una fila por usuario) o "mensaje" (una fila por mensaje)
     #Se divide ANTES por usuario (arriba) para que los mensajes de un mismo usuario no caigan en train y test
@@ -161,6 +209,7 @@ if __name__ == "__main__":
     train_prep,vectorizador_modelo = preproceso(train[COL_TEXTO], args)
     print(Fore.GREEN + f"Datos preprocesados!" + Fore.RESET)
     registrar_memoria("Preprocesado")
+    registrar_tiempo("Preprocesado")
     print("-"*60)
 
     X_train = train_prep
@@ -178,12 +227,14 @@ if __name__ == "__main__":
     print(Fore.GREEN + f"Modelo guardado en '{ruta_destino}'" + Fore.RESET)
     print(f"Centroides finales calculados: {centroides.shape[0]}")
     registrar_memoria("K-Means")
+    registrar_tiempo("K-Means")
     print("-"*60)
 
     #Evaluación
     y_train = train[args.label].to_numpy()
     evaluar(X_train, y_train, nombre_archivo_final)
     registrar_memoria("Evaluación")
+    registrar_tiempo("Evaluacion")
     print("-"*60)
 
     #Predicción Ollama
@@ -193,5 +244,9 @@ if __name__ == "__main__":
     if args.ollama:
         predecir_clusters(nombre_archivo_final, X_train, train[COL_TEXTO], args.preprocessing.get("text_process"))
         registrar_memoria("Ollama")
+        registrar_tiempo("Ollama")
 
     graficar_memoria(nombre_archivo_final)
+    graficar_tiempo(nombre_archivo_final)
+    duracion_total = time.time() - tiempo_inicio_total
+    print(Fore.YELLOW + f"\n Tiempo total de ejecución: {duracion_total:.2f} segundos" + Fore.RESET)
