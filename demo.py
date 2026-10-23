@@ -17,6 +17,7 @@ def cargar_entorno(ruta_pkl,ruta_json='clasificador.json'):
     - Precondición: Deben existir los archivos de configuración JSON y el modelo .pkl.
     - Inputs: Ruta del archivo pickle (ruta_pkl) y ruta del archivo JSON (ruta_json).
     - Outputs: Tupla con argumentos, centroides, métrica de distancia y vectorizador del modelo.
+    - Postcondición: Carga y retorna los parámetros de configuración, centroides, la métrica empleada y el vectorizador entrenado necesarios para realizar la predicción.
     """
     if not os.path.exists(ruta_json):
         print(f"{Fore.RED}Error: No se encuentra {ruta_json}{Fore.RESET}")
@@ -50,6 +51,7 @@ def modo_interactivo(args, centroides, metrica,vectorizador_modelo, textos_ref, 
     - Precondición: El entorno y el modelo deben estar cargados correctamente.
     - Inputs: Objeto args, matriz centroides, string metrica, vectorizador_modelo y datos de referencia del train (textos_ref, dist_ref, pred_ref).
     - Outputs: Ninguno (ejecuta un bucle interactivo evaluando mensajes por consola y muestra las 5 instancias más cercanas de su clúster asignado).
+    - Postcondición: Permite la interacción por consola en bucle hasta recibir la orden de parada, mostrando la asignación de clúster e instancias cercanas del conjunto de entrenamiento.
     """
     print(f"{Fore.CYAN}\n=== MODO DEMOSTRACIÓN INTERACTIVO ==={Fore.RESET}")
     print("Escribe un mensaje para evaluarlo. Escribe 'salir' para terminar.\n")
@@ -85,6 +87,7 @@ def modo_csv(ruta_csv, args, centroides, metrica, col_texto,vectorizador_modelo,
     - Precondición: El archivo CSV especificado debe existir y contener la columna de texto indicada.
     - Inputs: Ruta del CSV (ruta_csv), args, centroides, metrica, nombre de columna (col_texto), vectorizador_modelo y datos de referencia del train.
     - Outputs: Ninguno (genera y guarda un nuevo archivo CSV con las predicciones y las 5 instancias más cercanas de los clústeres).
+    - Postcondición: Exporta un nuevo fichero CSV con una nueva columna que contiene la predicción asignada a cada fila por el modelo K-Means.
     """
     print(f"{Fore.CYAN}\n=== MODO PREDICCIÓN MASIVA ({ruta_csv}) ==={Fore.RESET}")
     try:

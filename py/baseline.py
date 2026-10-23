@@ -10,6 +10,7 @@ def medir_rendimiento(func, *args, **kwargs):
     - Precondición: La función de entrada func debe ser un objeto invocable.
     - Inputs: Una función func, argumentos posicionales *args y argumentos de palabras clave **kwargs.
     - Outputs: Una tupla que contiene el resultado de la función, el tiempo total de ejecución en segundos y el pico de memoria en MB.
+    - Postcondición: Retorna una tupla con el resultado de la función, el tiempo de ejecución en segundos (medido con time.perf_counter()) y el pico de memoria alcanzado en MB (medido con tracemalloc).
     """
     tracemalloc.start()
     inicio_tiempo = time.perf_counter()
@@ -31,6 +32,7 @@ def baseline():
     - Precondición: Ninguna.
     - Inputs: Ninguno.
     - Outputs: Ninguno (ejecuta una comparativa de rendimiento entre Sklearn KMeans y el modelo propio, imprimiendo el consumo de memoria y el tiempo por consola.).
+    - Postcondición: Muestra por consola la comparativa de tiempo y consumo de memoria entre la implementación de Sklearn KMeans y el algoritmo propio.
     """
     #Generamos un dataset de prueba
     print("Generando datos de prueba...")

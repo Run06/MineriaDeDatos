@@ -24,6 +24,7 @@ def parse_args():
     - Precondición: El archivo CSV de entrada especificado debe existir en el sistema.
     - Inputs: Argumentos recibidos por la línea de comandos y el archivo opcional clasificador.json.
     - Outputs: Objeto con los argumentos analizados.
+    - Postcondición: Analiza los argumentos proporcionados desde la línea de comandos e integra los valores leídos desde el archivo clasificador.json en el objeto resultante.
     """
     parser = argparse.ArgumentParser(description="Clasificación no supervisada K-Means")
     parser.add_argument("-f", "--file", required=True, help="Archivo CSV de entrada")

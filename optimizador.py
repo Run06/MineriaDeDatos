@@ -16,6 +16,7 @@ def parse_args():
     - Precondición: Ninguna.
     - Inputs: Argumentos introducidos por la línea de comandos.
     - Outputs: Objeto con los argumentos analizados.
+    - Postcondición: Extrae y retorna las opciones seleccionadas por el usuario para controlar el proceso de optimización con Optuna.
     """
     parser = argparse.ArgumentParser(description="Optimizador de combinaciones del clasificador no supervisado K-Means")
     parser.add_argument("-n", "--num", default=100, type=int, help="Número de combinaciones/iteraciones inteligentes de Optuna")
@@ -32,6 +33,7 @@ def cargar_config(ruta="clasificador.json"):
     - Precondición: El archivo JSON de configuración debe existir.
     - Inputs: Ruta del archivo JSON ruta.
     - Outputs: Diccionario con la configuración cargada.
+    - Postcondición: Retorna el contenido parsed en formato diccionario del archivo de configuración JSON.
     """
     with open(ruta, "r") as f:
         return json.load(f)
@@ -41,6 +43,7 @@ def guardar_config(config, ruta="clasificador.json"):
     - Precondición: El diccionario de configuración debe ser válido para serializar a JSON.
     - Inputs: Diccionario config y ruta del archivo ruta.
     - Outputs: Ninguno (actualiza el archivo físico de configuración).
+    - Postcondición: Sobrescribe el fichero de configuración en formato JSON con la nueva estructura de parámetros.
     """
     with open(ruta, "w") as f:
         json.dump(config, f, indent=2)
@@ -50,6 +53,7 @@ def cargar_metricas():
     - Precondición: El archivo output/metricas_modelos.csv debe existir y contener registros.
     - Inputs: Ninguno.
     - Outputs: Un pd.DataFrame con las métricas acumuladas.
+    - Postcondición: Devuelve un DataFrame cargado con t0do el historial de métricas registradas tras la ejecución de las iteraciones.
     """
     if not os.path.exists("output/metricas_modelos.csv"):
         print("No se pudo encontrar el archivo output/metricas_modelos.csv")
@@ -69,6 +73,7 @@ def objetivo(trial, args_globales):
     - Precondición: Estar ejecutándose dentro de un estudio activo de Optuna.
     - Inputs: Objeto trial de Optuna.
     - Outputs: Retorna un valor float correspondiente al Silhouette Score de la prueba o float("-inf") si ocurre un fallo.
+    - Postcondición: Ejecuta una simulación con hiperparámetros seleccionados por Optuna, registra la ejecución y devuelve la puntuación del Silhouette Score alcanzado.
     """
     try:
         t = trial.suggest_categorical("text_process", ["tf-idf", "bow", "embeddings", "doc2vec", "emotion"])

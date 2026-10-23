@@ -27,6 +27,7 @@ def preproceso(text_cols, args,fase="train",vectorizador_entrenado=None,):
     - Precondición: El campo text_process dentro del clasificador.json debe ser uno de los soportados ('tf-idf', 'bow', 'embeddings', 'doc2vec', 'emotion').
     - Inputs: Columna o serie de textos text_cols, objeto de configuración args, fase de ejecución y vectorizador entrenado.
     - Outputs: Una matriz de características transformada (y opcionalmente el vectorizador ajustado si la fase es 'train').
+    - Postcondición: Transforma los textos recibidos según la técnica de vectorización especificada. Si la fase es 'train', retorna una tupla (matriz_características, vectorizador); en caso contrario, retorna únicamente la matriz ajustada con el vectorizador entrenado.
     """
     cfg = args.preprocessing
     text_process = cfg.get("text_process", "none")
@@ -353,9 +354,10 @@ _STOP_WORDS = None
 
 def _stop_words():
     """
-    - Precondición: Conexión o recursos de NLTK disponibles para descargar stopwords y punkt si es necesario.
+    - Precondición: Conexión o recursos locales de NLTK disponibles para descargar las stopwords y tokenizadores si es necesario.
     - Inputs: Ninguno.
     - Outputs: Un conjunto (set) con las palabras vacías en inglés.
+    - Postcondición: Almacena en memoria y retorna el conjunto de palabras vacías de NLTK excluyendo términos de negación clave.
     """
     global _STOP_WORDS
     if _STOP_WORDS is None:
@@ -370,6 +372,7 @@ def clean_text(text):
     - Precondición: Ninguna.
     - Inputs: Texto crudo text.
     - Outputs: String de texto procesado, en minúsculas, sin caracteres especiales, tokenizado y aplicando stemming.
+    - Postcondición: Devuelve el texto en minúsculas, limpio de caracteres alfanuméricos no alfabéticos, sin palabras vacías y lematizado con SnowballStemmer.
     """
     stop_words = _stop_words()
     #Texto minúsculas
