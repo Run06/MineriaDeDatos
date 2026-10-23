@@ -107,6 +107,7 @@ def visualizar_tsne(archivo_csv="500_Reddit_users_posts_labels.csv"):
 
     handles, _ = scatter2.legend_elements(num=len(np.unique(clusters_predichos)))
     etiquetas_clusters = [str(c) for c in np.unique(clusters_predichos)]
+    handles = handles[:len(etiquetas_clusters)]
     legend2 = ax2.legend(handles, etiquetas_clusters, title="Clústeres", loc='best')
     ax2.add_artist(legend2)
 
